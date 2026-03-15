@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GalaxyCSM — 은하 진화 시뮬레이터</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header id="header">
+        <div class="hdr-left">
+            <span class="logo">✦</span>
+            <div>
+                <h1>Galaxy<span class="acc">CSM</span></h1>
+                <small>Galactic Chemical Evolution & Planetary Differentiation</small>
+            </div>
+        </div>
+        <div class="hdr-right">
+            <button class="hdr-btn" onclick="openWindow('hr')">H-R 다이어그램</button>
+            <button class="hdr-btn" onclick="openWindow('gce')">GCE 차트</button>
+            <span class="badge" id="badge"><span class="dot"></span><span id="statusTxt">Ready</span></span>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <div id="main">
+        <div id="canvasWrap"></div>
+
+        <!-- Star Detail Panel -->
+        <aside id="detailPanel" class="panel hidden">
+            <div class="panel-header">
+                <h2 id="panelTitle">항성계 상세</h2>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <button class="expand-toggle" id="expandToggle" onclick="togglePanelExpand()">◀ 행성계</button>
+                    <button class="close-btn" onclick="closePanel('detailPanel')">&times;</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="panel-col-planets" id="planetSection"></div>
+                <div class="panel-col-star" id="detailContent"></div>
+            </div>
+        </aside>
+
+        <!-- Planet Detail Window -->
+        <div id="planetWindow" class="float-window hidden" style="width:560px;right:440px;top:60px">
+            <div class="win-header" onmousedown="startDrag(event,'planetWindow')">
+                <span>행성 분화 상세</span>
+                <button class="close-btn" onclick="closePanel('planetWindow')">&times;</button>
+            </div>
+            <div id="planetContent" class="win-body"></div>
+        </div>
+
+        <!-- Moon Detail Window -->
+        <div id="moonWindow" class="float-window hidden" style="width:560px;right:440px;top:60px">
+            <div class="win-header" onmousedown="startDrag(event,'moonWindow')">
+                <span>위성계 상세</span>
+                <button class="close-btn" onclick="closePanel('moonWindow')">&times;</button>
+            </div>
+            <div id="moonContent" class="win-body"></div>
+        </div>
+
+        <!-- Disk Detail Window -->
+        <div id="diskWindow" class="float-window hidden" style="width:520px;right:440px;top:60px">
+            <div class="win-header" onmousedown="startDrag(event,'diskWindow')">
+                <span>🌌 원시 원반 상세</span>
+                <button class="close-btn" onclick="closePanel('diskWindow')">&times;</button>
+            </div>
+            <div id="diskContent" class="win-body"></div>
+        </div>
+
+        <!-- Asteroid Belt Detail Window -->
+        <div id="beltWindow" class="float-window hidden" style="width:560px;right:440px;top:200px">
+            <div class="win-header" onmousedown="startDrag(event,'beltWindow')">
+                <span>🪨 소행성대 상세</span>
+                <button class="close-btn" onclick="closePanel('beltWindow')">&times;</button>
+            </div>
+            <div id="beltContent" class="win-body"></div>
+        </div>
+
+        <!-- H-R Diagram Window -->
+        <div id="hrWindow" class="float-window hidden" style="width:560px;height:500px;left:20px;top:60px">
+            <div class="win-header" onmousedown="startDrag(event,'hrWindow')">
+                <span>H-R 다이어그램</span>
+                <button class="close-btn" onclick="closePanel('hrWindow')">&times;</button>
+            </div>
+            <div id="hrContent" class="win-body">
+                <div id="hrPlot" style="width:100%;height:420px"></div>
+            </div>
+        </div>
+
+        <!-- GCE Chart Window -->
+        <div id="gceWindow" class="float-window hidden" style="width:640px;height:500px;left:20px;bottom:80px">
+            <div class="win-header" onmousedown="startDrag(event,'gceWindow')">
+                <span>GCE 원소 진화</span>
+                <button class="close-btn" onclick="closePanel('gceWindow')">&times;</button>
+            </div>
+            <div id="gceContent" class="win-body">
+                <div id="gcePlot" style="width:100%;height:420px"></div>
+            </div>
+        </div>
+
+        <!-- Map Modes & Filters -->
+        <div id="filterWindow" class="float-window" style="width:280px;height:auto;right:20px;bottom:80px">
+            <div class="win-header" onmousedown="startDrag(event,'filterWindow')">
+                <span>지도 필터 & 렌더링 모드</span>
+            </div>
+            <div class="win-body" style="padding:15px; font-size:12px; display:flex; flex-direction:column; gap:10px;">
+                <div>
+                    <strong>지도 색상 모드</strong>
+                    <select id="mapModeSelect" style="width:100%; margin-top:5px; padding:4px;"
+                        onchange="updateColorsAndFilters()">
+                        <option value="spectrum">항성 스펙트럼 (온도)</option>
+                        <option value="radiation">은하적 방사선 (초신성 빈도)</option>
+                        <option value="metallicity">금속성 비율 ([Fe/H])</option>
+                        <option value="ghz">거주가능역 (GHZ 안전지대)</option>
+                    </select>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--brd)">
+                <div>
+                    <strong>표시할 분광형</strong>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">
+                        <label><input type="checkbox" class="flt-sp" value="O" checked> O</label>
+                        <label><input type="checkbox" class="flt-sp" value="B" checked> B</label>
+                        <label><input type="checkbox" class="flt-sp" value="A" checked> A</label>
+                        <label><input type="checkbox" class="flt-sp" value="F" checked> F</label>
+                        <label><input type="checkbox" class="flt-sp" value="G" checked> G</label>
+                        <label><input type="checkbox" class="flt-sp" value="K" checked> K</label>
+                        <label><input type="checkbox" class="flt-sp" value="M" checked> M</label>
+                    </div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--brd)">
+                <div>
+                    <strong>진화 단계</strong>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-top:5px;">
+                        <label><input type="checkbox" class="flt-ph" value="pre-MS" checked> 전주계열</label>
+                        <label><input type="checkbox" class="flt-ph" value="MS" checked> 주계열성</label>
+                        <label><input type="checkbox" class="flt-ph" value="giant" checked> 거성/초거성 (RGB, AGB, RSG
+                            등)</label>
+                        <label><input type="checkbox" class="flt-ph" value="dead" checked> 축퇴성 (WD, NS, BH)</label>
+                    </div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--brd)">
+                <div>
+                    <strong>행성계 조건</strong>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-top:5px;">
+                        <label><input type="checkbox" id="flt_has_p"> 행성계 보유성 (1개 이상)</label>
+                        <label><input type="checkbox" id="flt_has_rocky"> 암석형 행성 보유성</label>
+                        <label><input type="checkbox" id="flt_has_gas"> 거대 가스/해왕성형 보유성</label>
+                        <label><input type="checkbox" id="flt_has_hz"> HZ(거주가능영역) 행성 보유성</label>
+                    </div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--brd)">
+                <div>
+                    <strong>행성 물리 제어</strong>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                        <div style="font-size:10px; color:var(--dim); margin-bottom:2px">ESI 가중치 (Schulze-Makuch+2011)
+                        </div>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">반경 w<sub>R</sub></span>
+                            <input type="range" id="esi_w_radius" min="0" max="3" step="0.01" value="0.57"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:30px;text-align:right">0.57</span>
+                        </label>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">밀도 w<sub>ρ</sub></span>
+                            <input type="range" id="esi_w_density" min="0" max="3" step="0.01" value="1.07"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:30px;text-align:right">1.07</span>
+                        </label>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">탈출속도 w<sub>v</sub></span>
+                            <input type="range" id="esi_w_escape" min="0" max="3" step="0.01" value="0.70"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:30px;text-align:right">0.70</span>
+                        </label>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">온도 w<sub>T</sub></span>
+                            <input type="range" id="esi_w_temp" min="0" max="10" step="0.01" value="5.58"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:30px;text-align:right">5.58</span>
+                        </label>
+                        <hr style="border:0; border-top:1px solid var(--brd); margin:4px 0">
+                        <div style="font-size:10px; color:var(--dim); margin-bottom:2px">Late Veneer &
+                            Disproportionation</div>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">Late Veneer 비율</span>
+                            <input type="range" id="lv_frac" min="0" max="0.1" step="0.001" value="0.005"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:35px;text-align:right">0.005</span>
+                        </label>
+                        <label style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:10px">Disproportionation 계수</span>
+                            <input type="range" id="disprop_scale" min="0" max="3" step="0.1" value="1.5"
+                                style="width:100px" oninput="this.nextElementSibling.textContent=this.value"><span
+                                style="font-size:10px;width:30px;text-align:right">1.5</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comprehensive Uncertainty Controls -->
+        <div id="paramWindow" class="float-window" style="width:340px;height:auto;left:20px;bottom:80px">
+            <div class="win-header" onmousedown="startDrag(event,'paramWindow')">
+                <span>GCE 역학 및 수율 제어</span>
+            </div>
+
+            <!-- Tabs Menu -->
+            <div style="display:flex; border-bottom:1px solid var(--brd); background:rgba(0,0,0,0.5);">
+                <button class="tab-btn active" onclick="switchGraphMode('r_process')" id="tab_r_process"
+                    style="flex:1; padding:6px 0; font-size:10px; border:none; background:transparent; border-bottom:2px solid var(--acc); color:var(--acc); cursor:pointer;">r-process</button>
+                <button class="tab-btn" onclick="switchGraphMode('s_process')" id="tab_s_process"
+                    style="flex:1; padding:6px 0; font-size:10px; border:none; background:transparent; color:var(--dim); cursor:pointer;">s-process</button>
+                <button class="tab-btn" onclick="switchGraphMode('ia_sn')" id="tab_ia_sn"
+                    style="flex:1; padding:6px 0; font-size:10px; border:none; background:transparent; color:var(--dim); cursor:pointer;">Ia
+                    SN</button>
+                <button class="tab-btn" onclick="switchGraphMode('galaxy')" id="tab_galaxy"
+                    style="flex:1; padding:6px 0; font-size:10px; border:none; background:transparent; color:var(--dim); cursor:pointer;">Galaxy</button>
+            </div>
+
+            <div class="win-body" style="padding:15px; font-size:12px; display:flex; flex-direction:column; gap:8px;">
+                <p id="graphDesc" style="font-size:11px; color:var(--dim); margin:0;">X: 수율 (Yield Multiplier)<br>Y: 발생
+                    빈도 (Rate Multiplier)</p>
+                <!-- 2D Drag Area -->
+                <div style="margin-top:10px; margin-bottom:10px;">
+                    <div id="paramArea"
+                        style="width:100%; height:200px; background:rgba(0,0,0,0.3); border:1px solid var(--brd); position:relative; cursor:crosshair; border-radius:4px;">
+                        <div id="paramDot"
+                            style="width:12px; height:12px; background:var(--acc); border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); pointer-events:none; box-shadow:0 0 10px var(--acc);">
+                        </div>
+                        <!-- Grid lines -->
+                        <div
+                            style="position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.1);">
+                        </div>
+                        <div
+                            style="position:absolute; top:0; bottom:0; left:50%; width:1px; background:rgba(255,255,255,0.1);">
+                        </div>
+                        <!-- Axis Labels overlays -->
+                        <span id="lblY"
+                            style="position:absolute; top:5px; left:5px; color:var(--dim); font-size:10px;">Frequency</span>
+                        <span id="lblX"
+                            style="position:absolute; bottom:5px; right:5px; color:var(--dim); font-size:10px;">Yields</span>
+                    </div>
+                </div>
+
+                <!-- Active Values -->
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-family:monospace;">
+                    <span style="color:var(--dim)">X = <span id="valX" style="color:var(--acc);">1.00x</span></span>
+                    <span style="color:var(--dim)">Y = <span id="valY" style="color:var(--acc);">1.00x</span></span>
+                </div>
+                <!-- Collapsar / Jet-SNe sub-params (r-process only) -->
+                <div id="collapsarParams" style="border-top:1px solid var(--brd);padding-top:8px;margin-top:4px;">
+                    <div style="font-size:10px;color:var(--dim);margin-bottom:4px">Collapsar / Jet-SNe r-process</div>
+                    <label style="display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-size:10px">CCSNe 중 Collapsar 비율</span>
+                        <input type="range" id="collapsar_frac" min="0" max="0.1" step="0.005" value="0.01"
+                            style="width:80px"
+                            oninput="this.nextElementSibling.textContent=(this.value*100).toFixed(1)+'%'"><span
+                            style="font-size:10px;width:35px;text-align:right">1.0%</span>
+                    </label>
+                    <label style="display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-size:10px">Collapsar 방출 질량 (M☉)</span>
+                        <input type="range" id="collapsar_ejecta" min="0.01" max="0.2" step="0.01" value="0.05"
+                            style="width:80px" oninput="this.nextElementSibling.textContent=this.value"><span
+                            style="font-size:10px;width:35px;text-align:right">0.05</span>
+                    </label>
+                </div>
+
+                <button onclick="apply2DParams()"
+                    style="width:100%; margin-top:10px; padding:8px; background:rgba(79,172,254,0.1); border:1px solid var(--acc); color:var(--acc); border-radius:4px; font-weight:bold; cursor:pointer; transition:all 0.2s;">
+                    모델 재계산 적용 (Re-calculate)
+                </button>
+            </div>
+        </div>
+
+        <!-- Time controls window -->
+        <div id="timeWindow" class="float-window"
+            style="width:380px;height:auto;left:50%;bottom:30px;transform:translateX(-50%);z-index:999">
+            <div class="win-header" onmousedown="startDrag(event,'timeWindow')" style="cursor:move; text-align:center">
+                <span>Time & Speed Controls</span>
+            </div>
+            <div class="win-body"
+                style="padding:15px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+                <div style="font-size:24px; font-weight:bold; font-family:monospace; color:var(--acc); text-shadow:0 0 10px var(--acc);"
+                    id="timeLabel">13.80 Gyr</div>
+
+                <div style="display:flex; width:100%; align-items:center; gap:10px;">
+                    <button id="btnPlay" onclick="togglePlay()"
+                        style="width:40px; height:40px; border-radius:50%; border:none; background:var(--acc); color:#fff; font-size:16px; cursor:pointer; box-shadow:0 0 10px var(--acc);">▶</button>
+                    <input type="range" id="timeSlider" min="0" max="1000" value="690" style="flex:1;"
+                        title="0~300: 0~20 Gyr | 300~1000: Log scale to 10000 Gyr">
+                </div>
+
+                <div style="width:100%; display:flex; justify-content:space-between; font-size:10px; color:var(--dim);">
+                    <span>0 Gyr</span>
+                    <span>10k Gyr</span>
+                </div>
+
+                <div style="width:100%; height:1px; background:rgba(255,255,255,0.1); margin:4px 0;"></div>
+
+                <div style="display:flex; width:100%; justify-content:space-between; align-items:center;">
+                    <span style="font-size:11px; color:var(--dim);">Playback Speed</span>
+                    <input type="range" id="speedSlider" min="0" max="30" value="15" style="width:120px"
+                        title="Exponential scale">
+                </div>
+
+                <div
+                    style="display:flex; width:100%; justify-content:center; gap:15px; font-size:11px; color:var(--dim); margin-top:5px;">
+                    <span id="starCount">0 stars</span>
+                    <span>|</span>
+                    <span id="aliveCount">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="overlay" class="show">
+        <div class="ld-box">
+            <div class="spinner"></div>
+            <p>은하 생성 중…</p>
+            <p class="sub">수만 개의 항성계를 절차적 생성 중 (GCE + SFR 기반)</p>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/detail.js"></script>
+    <script src="/js/hr.js"></script>
+    <script src="/js/windowing.js"></script>
+</body>
+
+</html>
