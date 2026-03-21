@@ -87,6 +87,28 @@ class GalaxyApiTest(unittest.TestCase):
 
         self.fail('Could not find an active Neptune-class planet in the API response to validate moon fields')
 
+    def test_star_payload_exposes_moon_system_for_rocky_hosts(self):
+        for star_id in range(min(80, len(self.payload['stars']['mass']))):
+            response = self.client.get(f'/api/star/{star_id}?t=13.8&cache_id={self.cache_id}')
+            self.assertEqual(response.status_code, 200)
+            payload = response.get_json()
+            for planet in payload.get('planets', []):
+                if planet.get('type') not in ('rocky', 'hot_rocky') or planet.get('status') != 'active':
+                    continue
+                self.assertIn('moon_system', planet)
+                self.assertIn('has_moon_system', planet)
+                self.assertIn('moon_count', planet)
+                self.assertIsInstance(planet['moon_system'], dict)
+                self.assertIn('formation_channel', planet['moon_system'])
+                self.assertIn('impact_state', planet['moon_system'])
+                self.assertIn('debris_disk', planet['moon_system'])
+                self.assertIn('summary', planet['moon_system'])
+                self.assertIn('major_moons', planet['moon_system'])
+                self.assertIn('minor_moons', planet['moon_system'])
+                return
+
+        self.fail('Could not find an active rocky planet in the API response to validate moon fields')
+
     def test_invalid_inputs_return_client_errors(self):
         bad_star = self.client.get(f'/api/star/5?t=nan&cache_id={self.cache_id}')
         self.assertEqual(bad_star.status_code, 400)

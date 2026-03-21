@@ -82,6 +82,7 @@ def _spiral_pos(r, rng, n, n_arms=4, pitch_deg=12.0):
 
 from .moons import estimate_moon_summary
 from .planets import estimate_spectral_habitable_zone, generate_planets
+from .rocky_moons import estimate_rocky_moon_summary
 
 
 _GIANT_PHASES = {
@@ -205,23 +206,33 @@ def generate_galaxy(n_stars=25000, params=None, seed=42):
             'has_resonant_moon_chain': False,
         }
         for planet in system:
-            if planet['type'] not in ('gas_giant', 'mini_neptune'):
+            if planet['type'] in ('gas_giant', 'mini_neptune'):
+                moon_summary = estimate_moon_summary(
+                    planet,
+                    star_mass=mass,
+                    metallicity_z=metallicity_z,
+                    current_stellar_mass=evo['current_mass'],
+                    actual_age_gyr=star_age,
+                    rng_seed=idx * 4099 + planet['index'] * 131 + 17,
+                )
+            elif planet['type'] in ('rocky', 'hot_rocky'):
+                moon_summary = estimate_rocky_moon_summary(
+                    planet,
+                    star_mass=mass,
+                    all_planets=system,
+                    current_stellar_mass=evo['current_mass'],
+                    actual_age_gyr=star_age,
+                    rng_seed=idx * 4099 + planet['index'] * 131 + 7,
+                )
+            else:
                 continue
-            moon_summary = estimate_moon_summary(
-                planet,
-                star_mass=mass,
-                metallicity_z=metallicity_z,
-                current_stellar_mass=evo['current_mass'],
-                actual_age_gyr=star_age,
-                rng_seed=idx * 4099 + planet['index'] * 131 + 17,
-            )
             moon_stats['moon_count_estimate'] += moon_summary['moon_count_estimate']
             moon_stats['has_moon_system'] = moon_stats['has_moon_system'] or moon_summary['has_moon_system']
-            moon_stats['has_regular_moons'] = moon_stats['has_regular_moons'] or moon_summary['has_regular_moons']
-            moon_stats['has_irregular_moons'] = moon_stats['has_irregular_moons'] or moon_summary['has_irregular_moons']
+            moon_stats['has_regular_moons'] = moon_stats['has_regular_moons'] or moon_summary.get('has_regular_moons', False)
+            moon_stats['has_irregular_moons'] = moon_stats['has_irregular_moons'] or moon_summary.get('has_irregular_moons', False)
             moon_stats['has_large_moon'] = moon_stats['has_large_moon'] or moon_summary['has_large_moon']
             moon_stats['has_resonant_moon_chain'] = (
-                moon_stats['has_resonant_moon_chain'] or moon_summary['has_resonant_moon_chain']
+                moon_stats['has_resonant_moon_chain'] or moon_summary.get('has_resonant_moon_chain', False)
             )
         if phase_current[-1] in _DEAD_PHASES:
             hhz = False

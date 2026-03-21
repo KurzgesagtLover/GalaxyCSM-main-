@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Physical consistency checks for giant and Neptune-class moon systems."""
+"""Physical consistency checks for giant, Neptune-class, and rocky moon systems."""
 
 import sys, io
 
@@ -12,6 +12,7 @@ import numpy as np
 
 from gce.disk import ProtoplanetaryDisk
 from gce.moons import build_moon_system
+from gce.rocky_moons import build_rocky_moon_system
 
 SEP = "=" * 60
 
@@ -68,6 +69,27 @@ def _neptune_planet(
         'formation_T_eq_K': 110.0,
         'giant_core_mass_earth': float(giant_core_mass_earth),
         'is_hot_jupiter': False,
+    }
+
+
+def _rocky_planet(
+    mass_earth=1.0,
+    semi_major_au=1.0,
+    formation_semi_major_au=None,
+    rotation_period_hr=24.0,
+    eccentricity=0.04,
+    ptype='rocky',
+):
+    formation_a = formation_semi_major_au if formation_semi_major_au is not None else semi_major_au
+    return {
+        'index': 2,
+        'type': ptype,
+        'mass_earth': float(mass_earth),
+        'semi_major_au': float(semi_major_au),
+        'formation_semi_major_au': float(formation_a),
+        'rotation_period_hr': float(rotation_period_hr),
+        'eccentricity': float(eccentricity),
+        'axial_tilt_deg': 18.0,
     }
 
 
@@ -177,6 +199,51 @@ def test_neptune_class_hosts_form_sparser_moon_systems():
     print("  [OK] Neptune-class hosts produce smaller but non-zero moon systems")
 
 
+def test_rocky_giant_impacts_can_form_large_moons():
+    print("\n" + SEP)
+    print("TEST 6: Rocky Giant Impacts Can Form Large Moons")
+    print(SEP)
+    rocky = _rocky_planet(1.0, 1.0, eccentricity=0.05)
+    system = build_rocky_moon_system(
+        rocky,
+        1.0,
+        all_planets=[rocky, _giant_planet(250.0, 4.5)],
+        late_veneer={'score': 0.82, 'water_frac': 0.002},
+        actual_age_gyr=4.5,
+        rng_seed=61,
+    )
+
+    print(f"  channel={system['formation_channel']}  major={system['summary']['n_major']} minor={system['summary']['n_minor']}")
+    print(f"  largest={system['summary']['largest_moon_mass_earth']:.5f} Me  ratio={system['summary']['moon_to_planet_mass_ratio']:.5f}")
+
+    assert system['summary']['n_major'] >= 1
+    assert system['summary']['largest_moon_mass_earth'] > 1e-3
+    assert system['formation_channel'] in {'giant_impact', 'binary_terrestrial'}
+    print("  [OK] Earth-like rocky planets can form large impact moons")
+
+
+def test_close_in_hot_rocky_worlds_suppress_moon_survival():
+    print("\n" + SEP)
+    print("TEST 7: Close-In Hot Rocky Worlds Suppress Moon Survival")
+    print(SEP)
+    temperate = _rocky_planet(1.0, 1.0, eccentricity=0.05, ptype='rocky')
+    hot = _rocky_planet(1.0, 0.04, eccentricity=0.05, ptype='hot_rocky')
+    late = {'score': 0.80, 'water_frac': 0.002}
+    temperate_sys = build_rocky_moon_system(
+        temperate, 1.0, all_planets=[temperate], late_veneer=late, actual_age_gyr=4.5, rng_seed=62
+    )
+    hot_sys = build_rocky_moon_system(
+        hot, 1.0, all_planets=[hot], late_veneer=late, actual_age_gyr=4.5, rng_seed=62
+    )
+
+    print(f"  temperate stable_outer={temperate_sys['impact_state']['stable_outer_rp']:.2f} Rp  moons={temperate_sys['summary']['n_major'] + temperate_sys['summary']['n_minor']}")
+    print(f"  hot       stable_outer={hot_sys['impact_state']['stable_outer_rp']:.2f} Rp  moons={hot_sys['summary']['n_major'] + hot_sys['summary']['n_minor']}")
+
+    assert hot_sys['impact_state']['stable_outer_rp'] < temperate_sys['impact_state']['stable_outer_rp']
+    assert hot_sys['summary']['total_moon_mass_earth'] <= temperate_sys['summary']['total_moon_mass_earth']
+    print("  [OK] Stellar tides suppress close-in rocky moon systems")
+
+
 if __name__ == '__main__':
     _configure_stdout()
     test_more_massive_giants_build_more_massive_regular_systems()
@@ -184,6 +251,8 @@ if __name__ == '__main__':
     test_regular_and_irregular_moons_have_distinct_orbital_properties()
     test_cpd_snow_line_creates_rock_ice_gradient()
     test_neptune_class_hosts_form_sparser_moon_systems()
+    test_rocky_giant_impacts_can_form_large_moons()
+    test_close_in_hot_rocky_worlds_suppress_moon_survival()
     print("\n" + SEP)
     print("MOON TESTS PASSED")
     print(SEP)

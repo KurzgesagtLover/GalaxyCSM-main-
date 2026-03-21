@@ -108,6 +108,7 @@ from .planet_interior import (
     magnetic_field,
 )
 from .moons import build_moon_system
+from .rocky_moons import build_rocky_moon_system
 
 # ============================================================
 # VOLATILE DEPLETION — Lodders 2003
@@ -1682,6 +1683,21 @@ def build_planet_system(star_id, star_mass, birth_time, r_zone,
             p['habitability'] = _habitability_assessment(p, atmo, p['radiation'])
             p['habitability_score'] = p['habitability']['score']
             p['is_habitable'] = p['habitability']['label'] == 'candidate'
+            p['moon_system'] = build_rocky_moon_system(
+                p,
+                star_mass=star_mass,
+                all_planets=planets,
+                late_veneer=lv_params,
+                phys=phys,
+                current_stellar_mass=c_mass,
+                actual_age_gyr=actual_age,
+                rng_seed=star_id * 1009 + p['index'] * 131 + 7,
+            )
+            p['moon_count'] = (
+                p['moon_system']['summary']['n_major']
+                + p['moon_system']['summary']['n_minor']
+            )
+            p['has_moon_system'] = bool(p['moon_count'] > 0)
 
             p['status'] = 'active'
 
