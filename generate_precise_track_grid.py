@@ -13,7 +13,7 @@ from gce.stellar_properties import PHASE_KR
 from gce.stellar_tracks import stellar_evolution
 
 
-MASS_GRID = [0.12, 0.25, 0.4, 0.7, 1.0, 1.5, 3.0, 6.0, 8.0, 15.0, 30.0, 60.0, 100.0]
+MASS_GRID = [0.12, 0.25, 0.4, 0.7, 1.0, 1.5, 3.0, 6.0, 8.0, 15.0, 20.0, 30.0, 40.0, 60.0, 100.0]
 METALLICITY_GRID = [1e-4, 0.004, 0.02, 0.04]
 
 
