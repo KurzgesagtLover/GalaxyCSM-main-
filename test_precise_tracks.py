@@ -7,6 +7,18 @@ from gce.stellar_track_provider import get_provider_stats, reset_provider_stats
 from gce.stellar_track_interpolator import load_track_pack
 
 
+EXPECTED_STATE_FIELDS = {
+    'phase', 'phase_kr', 'T_eff', 'luminosity', 'radius', 'color',
+    'spectral_class', 'log_g', 'abs_mag', 'current_mass', 'max_radius_au',
+    'flare_activity',
+}
+KNOWN_PHASES = {
+    'disk', 'pre-MS', 'MS', 'subgiant', 'RGB', 'HB', 'AGB', 'post-AGB', 'PN',
+    'WD', 'Black Dwarf', 'blue_dwarf', 'BSG', 'RSG', 'YSG', 'LBV', 'WR',
+    'hypergiant', 'SN', 'NS', 'BH',
+}
+
+
 def test_demo_track_pack_exists_and_loads():
     assert os.path.exists(DEFAULT_PRECISE_TRACK_PACK)
     pack = load_track_pack(DEFAULT_PRECISE_TRACK_PACK)
@@ -27,6 +39,13 @@ def test_precise_grid_hits_exact_track_point_close_to_heuristic():
     assert abs(precise['radius'] - heuristic['radius']) / max(heuristic['radius'], 1e-8) < 0.05
 
 
+def test_public_state_contract_is_preserved():
+    state = stellar_evolution(1.0, 1.0, metallicity_z=0.02, model='auto')
+    assert EXPECTED_STATE_FIELDS.issubset(state.keys())
+    assert state['phase'] in KNOWN_PHASES
+    assert state['max_radius_au'] >= state['radius'] * 0.0046
+
+
 def test_out_of_range_precise_request_falls_back():
     reset_provider_stats()
     state = stellar_evolution(140.0, 2.0, metallicity_z=0.02, model='auto')
@@ -41,6 +60,7 @@ def test_hr_track_auto_mode_preserves_contract():
     assert len(track) <= 24
     assert [pt['age'] for pt in track] == sorted(pt['age'] for pt in track)
     assert all('phase' in pt and 'phase_kr' in pt and 'color' in pt for pt in track)
+    assert all(pt['phase'] in KNOWN_PHASES for pt in track)
 
 
 def test_precise_mode_smoke_benchmark():
@@ -49,3 +69,19 @@ def test_precise_mode_smoke_benchmark():
         stellar_evolution(1.0, 1.0, metallicity_z=0.02, model='auto')
     elapsed = time.perf_counter() - t0
     assert elapsed < 2.0
+
+
+if __name__ == '__main__':
+    test_demo_track_pack_exists_and_loads()
+    print('track pack load: OK')
+    test_precise_grid_hits_exact_track_point_close_to_heuristic()
+    print('exact grid point interpolation: OK')
+    test_public_state_contract_is_preserved()
+    print('public state contract: OK')
+    test_out_of_range_precise_request_falls_back()
+    print('fallback behavior: OK')
+    test_hr_track_auto_mode_preserves_contract()
+    print('H-R track contract: OK')
+    test_precise_mode_smoke_benchmark()
+    print('precise benchmark smoke: OK')
+    print('precise track tests passed')
