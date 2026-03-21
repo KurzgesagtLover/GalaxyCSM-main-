@@ -1485,7 +1485,8 @@ def _habitability_assessment(planet, atmosphere=None, radiation=None):
 # ============================================================
 def build_planet_system(star_id, star_mass, birth_time, r_zone,
                         gce_result, current_time=13.8, rng_seed=None, evo=None,
-                        esi_weights=None, lv_frac=None, disprop_scale=None):
+                        esi_weights=None, lv_frac=None, disprop_scale=None,
+                        stellar_model=None):
     """Build full planetary system with all physics.
 
     Now includes protoplanetary disk model (Hayashi 1981, Andrews+2013)
@@ -1537,7 +1538,12 @@ def build_planet_system(star_id, star_mass, birth_time, r_zone,
     for p in planets:
         formation_a_au = p.get('formation_semi_major_au', p['semi_major_au'])
         p['formation_delay'] = round(0.01 + 0.02 * rng.random(), 4)
-        formation_evo = _stellar_evolution(star_mass, p['formation_delay'], metallicity_z=metallicity)
+        formation_evo = _stellar_evolution(
+            star_mass,
+            p['formation_delay'],
+            metallicity_z=metallicity,
+            model=stellar_model,
+        )
         formation_luminosity = formation_evo.get('luminosity', star_mass ** 3.5)
         formation_albedo = 0.10 if p['type'] == 'hot_rocky' else 0.20
         p['formation_T_eq_K'] = round(float(estimate_equilibrium_temperature(

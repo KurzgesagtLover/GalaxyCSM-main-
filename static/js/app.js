@@ -105,7 +105,7 @@ const FS = `
 document.addEventListener('DOMContentLoaded', () => {
     setupThree();
     init2DParams();
-    loadGalaxy();
+    _buildParamForms();
 });
 
 function setupThree() {
@@ -273,21 +273,206 @@ function updateFromDot(e) {
     syncDotToMode();
 }
 
+/* ---- Complete parameter definitions ---- */
+const GEN_PARAMS = [
+    { section: '기본 설정' },
+    { id: 'stellar_model', label: '항성 진화 엔진', type: 'select', options: [
+        { value: 'auto', text: 'auto (정밀 + fallback)' },
+        { value: 'precise', text: 'precise (정밀 보간)' },
+        { value: 'heuristic', text: 'heuristic (휴리스틱)' }
+    ], default: 'auto' },
+    { id: 'n_stars', label: '생성할 별 개수', type: 'int', min: 100, max: 200000, step: 1000, default: 25000 },
+    { id: 'imf', label: '초기 질량 함수 (IMF)', type: 'select', options: [
+        { value: 'kroupa', text: 'Kroupa (2001)' },
+        { value: 'salpeter', text: 'Salpeter (1955)' },
+        { value: 'chabrier', text: 'Chabrier (2003)' }
+    ], default: 'kroupa' },
+
+    { section: '시간 범위' },
+    { id: 't_max', label: 'GCE 계산 시간 (Gyr)', type: 'float', min: 0.1, max: 100, step: 0.5, default: 20.0 },
+    { id: 'view_t_max', label: '관측 시간 상한 (Gyr)', type: 'float', min: 1, max: 10000, step: 100, default: 10000 },
+
+    { section: '은하 공간 구조' },
+    { id: 'r_min', label: '최소 반경 (kpc)', type: 'float', min: 0.1, max: 5, step: 0.1, default: 0.5 },
+    { id: 'r_max', label: '최대 반경 (kpc)', type: 'float', min: 5, max: 50, step: 1, default: 20.0 },
+    { id: 'dr', label: '반경 해상도 Δr (kpc)', type: 'float', min: 0.1, max: 5, step: 0.1, default: 1.0 },
+
+    { section: '별 형성 (Kennicutt-Schmidt)' },
+    { id: 'sfr_efficiency', label: '별 형성 효율 (SFE)', type: 'float', min: 0.01, max: 0.5, step: 0.01, default: 0.08 },
+    { id: 'sfr_exponent', label: 'K-S 법칙 지수', type: 'float', min: 1.0, max: 2.5, step: 0.1, default: 1.4 },
+
+    { section: '가스 유입 (이중 지수)' },
+    { id: 'infall_tau_thick', label: 'Thick disk τ (Gyr)', type: 'float', min: 0.1, max: 5, step: 0.1, default: 1.0 },
+    { id: 'infall_tau_thin', label: 'Thin disk τ (Gyr)', type: 'float', min: 1, max: 20, step: 0.5, default: 7.0 },
+    { id: 'infall_sigma_thick0', label: 'Thick disk Σ₀ (M☉/pc²)', type: 'float', min: 10, max: 200, step: 5, default: 55.0 },
+    { id: 'infall_sigma_thin0', label: 'Thin disk Σ₀ (M☉/pc²)', type: 'float', min: 50, max: 1000, step: 10, default: 320.0 },
+    { id: 'infall_rd', label: 'Disk scale length (kpc)', type: 'float', min: 1, max: 10, step: 0.5, default: 3.5 },
+
+    { section: '유출 (Outflow)' },
+    { id: 'outflow_eta', label: 'Mass-loading factor η', type: 'float', min: 0, max: 5, step: 0.1, default: 0.3 },
+
+    { section: '원소 수율 배율' },
+    { id: 'yield_r_multiplier', label: 'r-process (NSM) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
+    { id: 'yield_s_multiplier', label: 's-process (AGB) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
+    { id: 'yield_ia_multiplier', label: 'Type Ia SN 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
+    { id: 'agb_frequency_multiplier', label: 'AGB 빈도 배율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
+
+    { section: 'Type Ia 초신성' },
+    { id: 'ia_N_per_Msun', label: 'Ia 발생률 (/M☉)', type: 'float', min: 0.0005, max: 0.005, step: 0.0001, default: 0.002 },
+    { id: 'ia_t_min', label: 'Ia 최소 지연 (Gyr)', type: 'float', min: 0.01, max: 1.0, step: 0.01, default: 0.15 },
+    { id: 'ia_dtd_slope', label: 'Ia DTD 기울기', type: 'float', min: -2, max: 0, step: 0.1, default: -1.0 },
+
+    { section: '중성자별 합병 (NSM)' },
+    { id: 'nsm_N_per_Msun', label: 'NSM 발생률 (/M☉)', type: 'float', min: 1e-6, max: 1e-3, step: 1e-6, default: 3e-5 },
+    { id: 'nsm_t_min', label: 'NSM 최소 지연 (Gyr)', type: 'float', min: 0.001, max: 0.5, step: 0.001, default: 0.01 },
+    { id: 'nsm_dtd_slope', label: 'NSM DTD 기울기', type: 'float', min: -2, max: 0, step: 0.1, default: -1.0 },
+    { id: 'nsm_ejecta', label: 'NSM 방출 질량 (M☉)', type: 'float', min: 0.001, max: 0.1, step: 0.001, default: 0.03 },
+
+    { section: 'Collapsar / Jet-SNe' },
+    { id: 'collapsar_frac', label: 'CCSNe 중 비율', type: 'float', min: 0, max: 0.1, step: 0.005, default: 0.01 },
+    { id: 'collapsar_ejecta', label: '방출 질량 (M☉)', type: 'float', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
+];
+
+function _groupParamsBySections() {
+    const groups = [];
+    let cur = null;
+    GEN_PARAMS.forEach(p => {
+        if (p.section) {
+            cur = { title: p.section, params: [] };
+            groups.push(cur);
+        } else if (cur) {
+            cur.params.push(p);
+        }
+    });
+    return groups;
+}
+
+function _renderInputRow(p, prefix) {
+    const row = document.createElement('label');
+    row.className = 'gen-opt-row';
+
+    const lbl = document.createElement('span');
+    lbl.textContent = p.label;
+    row.appendChild(lbl);
+
+    if (p.type === 'select') {
+        const sel = document.createElement('select');
+        sel.id = prefix + p.id;
+        sel.className = 'gen-opt-select';
+        sel.style.width = '150px';
+        p.options.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.value;
+            opt.textContent = o.text;
+            if (o.value === p.default) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        row.appendChild(sel);
+    } else {
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.id = prefix + p.id;
+        inp.className = 'gen-opt-num';
+        inp.min = p.min;
+        inp.max = p.max;
+        inp.step = p.step;
+        inp.value = p.default;
+        if (p.unit) {
+            const wrap = document.createElement('span');
+            wrap.style.cssText = 'display:flex;align-items:center;gap:3px';
+            wrap.appendChild(inp);
+            const u = document.createElement('span');
+            u.style.cssText = 'font-size:10px;color:var(--dim);width:16px';
+            u.textContent = p.unit;
+            wrap.appendChild(u);
+            row.appendChild(wrap);
+        } else {
+            row.appendChild(inp);
+        }
+    }
+    return row;
+}
+
+function _renderGrid(container, prefix) {
+    container.innerHTML = '';
+    const groups = _groupParamsBySections();
+    groups.forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'setup-card';
+
+        const title = document.createElement('div');
+        title.className = 'setup-card-title';
+        title.textContent = g.title;
+        card.appendChild(title);
+
+        g.params.forEach(p => card.appendChild(_renderInputRow(p, prefix)));
+        container.appendChild(card);
+    });
+}
+
+function _buildParamForms() {
+    _renderGrid(document.getElementById('setupGrid'), 'opt_');
+}
+
+function _syncGrids(from, to) {
+    GEN_PARAMS.forEach(p => {
+        if (p.section) return;
+        const src = document.getElementById(from + p.id);
+        const dst = document.getElementById(to + p.id);
+        if (src && dst) dst.value = src.value;
+    });
+}
+
+function onSetupGenerate() {
+    document.getElementById('setupScreen').classList.add('hidden');
+    _renderGrid(document.getElementById('genOptsGrid'), 'ropt_');
+    _syncGrids('opt_', 'ropt_');
+    _doGalaxyGeneration(collectGenOpts('opt_'));
+}
+
+function onRegenerate() {
+    document.getElementById('genOptsOverlay').classList.add('hidden');
+    _doGalaxyGeneration(collectGenOpts('ropt_'));
+}
+
+function collectGenOpts(prefix) {
+    prefix = prefix || 'opt_';
+    const result = {};
+    GEN_PARAMS.forEach(p => {
+        if (p.section) return;
+        const el = document.getElementById(prefix + p.id);
+        if (!el) return;
+        if (p.type === 'select') {
+            result[p.id] = el.value;
+        } else if (p.type === 'int') {
+            result[p.id] = parseInt(el.value) || p.default;
+        } else {
+            result[p.id] = parseFloat(el.value) || p.default;
+        }
+    });
+    return result;
+}
+
 function apply2DParams() {
-    document.getElementById('statusTxt').textContent = 'Re-calculating GCE...';
+    const opts = collectGenOpts('ropt_');
+    if (typeof graphModes !== 'undefined') {
+        Object.values(graphModes).forEach(mode => {
+            opts[mode.x.id] = mode.x.val;
+            opts[mode.y.id] = mode.y.val;
+        });
+    }
+    const cfEl = document.getElementById('collapsar_frac');
+    if (cfEl) opts.collapsar_frac = parseFloat(cfEl.value);
+    const ceEl = document.getElementById('collapsar_ejecta');
+    if (ceEl) opts.collapsar_ejecta = parseFloat(ceEl.value);
+    _doGalaxyGeneration(opts);
+}
+
+function _doGalaxyGeneration(params) {
+    document.getElementById('setupScreen')?.classList.add('hidden');
+    document.getElementById('statusTxt').textContent = 'Generating...';
     document.getElementById('overlay').classList.add('show');
     const requestToken = ++_galaxyRequestToken;
-
-    const params = { n_stars: DEFAULT_STAR_COUNT, t_max: gceTMax, view_t_max: tMax };
-    Object.values(graphModes).forEach(mode => {
-        params[mode.x.id] = mode.x.val;
-        params[mode.y.id] = mode.y.val;
-    });
-    // Collapsar sub-params
-    const cfEl = document.getElementById('collapsar_frac');
-    if (cfEl) params.collapsar_frac = parseFloat(cfEl.value);
-    const ceEl = document.getElementById('collapsar_ejecta');
-    if (ceEl) params.collapsar_ejecta = parseFloat(ceEl.value);
 
     fetchJson('/api/galaxy', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -321,42 +506,6 @@ function togglePlay() {
     playing = !playing;
     document.getElementById('btnPlay').textContent = playing ? '⏸' : '▶';
     if (playing && currentTime >= tMax) currentTime = 0;
-}
-
-/* ---- Galaxy ---- */
-async function loadGalaxy() {
-    document.getElementById('statusTxt').textContent = 'Generating...';
-    const requestToken = ++_galaxyRequestToken;
-    try {
-        const data = await fetchJson('/api/galaxy', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                n_stars: DEFAULT_STAR_COUNT,
-                t_max: DEFAULT_GCE_T_MAX,
-                view_t_max: DEFAULT_VIEW_T_MAX
-            })
-        });
-        if (requestToken !== _galaxyRequestToken) return;
-        galaxyData = data;
-        galaxyCacheId = galaxyData.cache_id || null;
-        gceTMax = galaxyData.t_max || DEFAULT_GCE_T_MAX;
-        tMax = galaxyData.view_t_max || DEFAULT_VIEW_T_MAX;
-        buildStarField();
-        document.getElementById('starCount').textContent = galaxyData.n_stars.toLocaleString() + ' stars';
-        document.getElementById('statusTxt').textContent = 'Ready (' + galaxyData.elapsed + 's)';
-        currentTime = 13.8;
-        document.getElementById('timeSlider').value = timeToSlider(currentTime);
-        document.getElementById('timeLabel').textContent = '13.80 Gyr';
-        updateUniforms();
-    } catch (e) {
-        if (requestToken !== _galaxyRequestToken) return;
-        document.getElementById('statusTxt').textContent = e.message || 'Error';
-        console.error(e);
-    } finally {
-        if (requestToken === _galaxyRequestToken) {
-            document.getElementById('overlay').classList.remove('show');
-        }
-    }
 }
 
 let origColor, origSize;

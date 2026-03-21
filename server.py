@@ -9,9 +9,15 @@ from threading import Lock
 import time
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from gce.config import (
+    DEFAULT_PARAMS,
+    DEFAULT_STELLAR_MODEL,
+    DEFAULT_VIEW_T_MAX,
+    STELLAR_MODEL_OPTIONS,
+    coerce_stellar_model,
+)
 from gce.stellar import generate_galaxy, stellar_evolution, hr_track, _ms_lifetime
 from gce.planets import build_planet_system
-from gce.config import DEFAULT_PARAMS, DEFAULT_VIEW_T_MAX
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -56,7 +62,14 @@ def _parse_query_float(name, *, default=None, min_value=None, max_value=None):
     return _coerce_float(raw, name, min_value=min_value, max_value=max_value)
 
 
-def _store_cache(gce, stars):
+def _parse_query_stellar_model(name='stellar_model', *, default=None):
+    raw = request.args.get(name)
+    if raw is None:
+        return default
+    return coerce_stellar_model(raw)
+
+
+def _store_cache(gce, stars, stellar_model=DEFAULT_STELLAR_MODEL):
     global _latest_cache_id
 
     cache_id = token_urlsafe(9)
@@ -64,6 +77,7 @@ def _store_cache(gce, stars):
         _cache_entries[cache_id] = {
             'gce': gce,
             'stars': stars,
+            'stellar_model': coerce_stellar_model(stellar_model),
             'created_at': time.time(),
         }
         _cache_entries.move_to_end(cache_id)
@@ -101,6 +115,8 @@ def defaults():
     return jsonify({
         'n_stars': DEFAULT_STAR_COUNT,
         **DEFAULT_PARAMS,
+        'stellar_model': DEFAULT_STELLAR_MODEL,
+        'stellar_model_options': list(STELLAR_MODEL_OPTIONS),
         'view_t_max': DEFAULT_VIEW_T_MAX,
     })
 
@@ -111,18 +127,20 @@ def api_galaxy():
         params = dict(payload or {})
         n = _coerce_int(params.pop('n_stars', DEFAULT_STAR_COUNT), 'n_stars', min_value=1, max_value=MAX_STAR_COUNT)
         t_max = _coerce_float(params.pop('t_max', DEFAULT_PARAMS['t_max']), 't_max', min_value=0.1, max_value=DEFAULT_VIEW_T_MAX)
+        stellar_model = coerce_stellar_model(params.pop('stellar_model', DEFAULT_STELLAR_MODEL))
         view_t_max = max(
             _coerce_float(params.pop('view_t_max', DEFAULT_VIEW_T_MAX), 'view_t_max', min_value=0.1, max_value=DEFAULT_VIEW_T_MAX),
             t_max,
         )
         params['t_max'] = t_max
         t0 = time.time()
-        data = generate_galaxy(n_stars=n, params=params)
+        data = generate_galaxy(n_stars=n, params=params, stellar_model=stellar_model)
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     data['elapsed'] = round(time.time() - t0, 2)
     data['view_t_max'] = view_t_max
-    data['cache_id'] = _store_cache(data['gce'], data['stars'])
+    data['stellar_model'] = stellar_model
+    data['cache_id'] = _store_cache(data['gce'], data['stars'], stellar_model=stellar_model)
     # Do not delete data['gce'] so that client has radiation modes
     return jsonify(data)
 
@@ -146,8 +164,12 @@ def api_star(star_id):
     birth_z = float(s.get('birth_z', [0.02] * len(s['mass']))[star_id])
     age = max(ct - birth, 0)
     t_ms = _ms_lifetime(mass, metallicity_z=birth_z)
+    try:
+        stellar_model = _parse_query_stellar_model(default=cache.get('stellar_model', DEFAULT_STELLAR_MODEL))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
-    evo = stellar_evolution(mass, age, metallicity_z=birth_z)
+    evo = stellar_evolution(mass, age, metallicity_z=birth_z, model=stellar_model)
 
     # Optional planet physics parameters from query string
     esi_w = {}
@@ -171,9 +193,11 @@ def api_star(star_id):
         evo=evo,
         esi_weights=esi_w if esi_w else None,
         lv_frac=lv_frac,
-        disprop_scale=disprop_sc
+        disprop_scale=disprop_sc,
+        stellar_model=stellar_model,
     )
     result['cache_id'] = cache_id
+    result['stellar_model'] = stellar_model
     result['evolution'] = evo
     result['star_type'] = s['type'][star_id]
     result['star_temp'] = s['temp'][star_id]
@@ -203,10 +227,11 @@ def api_evolution(star_id):
     birth_z = float(s.get('birth_z', [0.02] * len(s['mass']))[star_id])
     try:
         t_max = _parse_query_float('t_max', default=DEFAULT_VIEW_T_MAX, min_value=0.1, max_value=DEFAULT_VIEW_T_MAX)
+        stellar_model = _parse_query_stellar_model(default=cache.get('stellar_model', DEFAULT_STELLAR_MODEL))
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     age_max = max(t_max - birth, 0.0)
-    track = hr_track(mass, age_max=age_max, metallicity_z=birth_z)
+    track = hr_track(mass, age_max=age_max, metallicity_z=birth_z, stellar_model=stellar_model)
     # Add absolute time
     for pt in track:
         pt['t'] = round(birth + pt['age'], 5)
@@ -215,6 +240,7 @@ def api_evolution(star_id):
         'star_id': star_id, 'mass': round(mass, 4),
         'birth': round(birth, 3),
         'birth_z': round(birth_z, 6),
+        'stellar_model': stellar_model,
         'ms_lifetime': round(_ms_lifetime(mass, metallicity_z=birth_z), 4),
         'track': track
     })

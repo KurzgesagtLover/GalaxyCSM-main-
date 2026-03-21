@@ -56,6 +56,12 @@ python server.py
 
 서버는 정적 UI와 함께 몇 가지 핵심 API를 제공합니다.
 
+항성 진화 엔진은 `stellar_model`로 선택할 수 있습니다.
+
+- `auto`: 사전계산 트랙이 있으면 정밀 보간, 아니면 휴리스틱 fallback
+- `precise`: 정밀 트랙 보간 우선 사용
+- `heuristic`: 기존 휴리스틱 트랙만 사용
+
 ### `GET /api/defaults`
 
 기본 시뮬레이션 파라미터와 기본 별 개수를 반환합니다.
@@ -69,7 +75,7 @@ python server.py
 ```bash
 curl -X POST http://127.0.0.1:5000/api/galaxy ^
   -H "Content-Type: application/json" ^
-  -d "{\"n_stars\": 5000, \"t_max\": 20.0}"
+  -d "{\"n_stars\": 5000, \"t_max\": 20.0, \"stellar_model\": \"auto\"}"
 ```
 
 주요 입력값 예시:
@@ -82,6 +88,7 @@ curl -X POST http://127.0.0.1:5000/api/galaxy ^
 - `yield_r_multiplier`
 - `yield_ia_multiplier`
 - `agb_frequency_multiplier`
+- `stellar_model`
 
 ### `GET /api/star/<star_id>`
 
@@ -90,7 +97,7 @@ curl -X POST http://127.0.0.1:5000/api/galaxy ^
 예시:
 
 ```text
-GET /api/star/5?t=13.8&cache_id=<cache_id>
+GET /api/star/5?t=13.8&stellar_model=auto&cache_id=<cache_id>
 ```
 
 ### `GET /api/evolution/<star_id>`
@@ -100,7 +107,7 @@ GET /api/star/5?t=13.8&cache_id=<cache_id>
 예시:
 
 ```text
-GET /api/evolution/5?t_max=100.0&cache_id=<cache_id>
+GET /api/evolution/5?t_max=100.0&stellar_model=auto&cache_id=<cache_id>
 ```
 
 ## 테스트
@@ -124,6 +131,8 @@ python test_physical_consistency.py
 python test_moons.py
 python test_planets.py
 python test_disk.py
+python test_precise_tracks.py
+python benchmark_stellar_tracks.py
 ```
 
 참고:

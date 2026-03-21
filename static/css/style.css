@@ -14,7 +14,6 @@
     --warn: #facc15;
     --font: 'Outfit', sans-serif;
     --mono: 'JetBrains Mono', monospace;
-    --r: 10px;
 }
 
 * {
@@ -94,7 +93,6 @@ small {
     background: var(--surf);
     border: 1px solid var(--brd);
     color: var(--acc);
-    border-radius: 6px;
     font-size: 11px;
     cursor: pointer;
     font-family: var(--font);
@@ -113,7 +111,6 @@ small {
     padding: 4px 10px;
     background: var(--surf);
     border: 1px solid var(--brd);
-    border-radius: 16px;
     font-size: 11px
 }
 
@@ -169,7 +166,6 @@ small {
     width: 32px;
     height: 32px;
     border: 1px solid var(--brd);
-    border-radius: 50%;
     background: var(--surf);
     color: var(--acc);
     font-size: 12px;
@@ -190,7 +186,6 @@ small {
     -webkit-appearance: none;
     appearance: none;
     background: var(--brd);
-    border-radius: 2px;
     outline: none
 }
 
@@ -198,7 +193,6 @@ small {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    border-radius: 50%;
     background: var(--acc);
     box-shadow: 0 0 8px var(--acc);
     cursor: pointer
@@ -281,7 +275,6 @@ small {
     background: none;
     border: 1px solid var(--brd);
     color: var(--acc);
-    border-radius: 6px;
     padding: 3px 8px;
     font-size: 10px;
     cursor: pointer;
@@ -334,7 +327,6 @@ small {
     position: absolute;
     background: var(--surf);
     border: 1px solid var(--brd);
-    border-radius: var(--r);
     backdrop-filter: blur(16px);
     overflow: hidden;
     z-index: 12;
@@ -430,7 +422,6 @@ small {
 .planet-card {
     background: rgba(255, 255, 255, .02);
     border: 1px solid var(--brd);
-    border-radius: 8px;
     padding: 10px;
     margin-bottom: 6px;
     cursor: pointer;
@@ -451,7 +442,6 @@ small {
     background: rgba(74, 222, 128, .15);
     color: var(--ok);
     padding: 1px 5px;
-    border-radius: 3px;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: .5px
@@ -459,7 +449,6 @@ small {
 
 .phase-tag {
     padding: 2px 6px;
-    border-radius: 4px;
     font-size: 9px;
     font-weight: 600;
     letter-spacing: .5px
@@ -522,7 +511,6 @@ small {
     padding: 2px 6px;
     background: rgba(255, 255, 255, .03);
     border: 1px solid var(--brd);
-    border-radius: 4px;
     font-size: 10px
 }
 
@@ -542,7 +530,6 @@ small {
 .diff-bar {
     display: flex;
     height: 20px;
-    border-radius: 5px;
     overflow: hidden;
     margin: 6px 0;
     gap: 1px
@@ -572,7 +559,6 @@ small {
     display: inline-block;
     width: 7px;
     height: 7px;
-    border-radius: 2px;
     margin-right: 3px;
     vertical-align: middle
 }
@@ -630,7 +616,6 @@ small {
 
 .el-bar {
     height: 6px;
-    border-radius: 3px;
     min-width: 1px
 }
 
@@ -703,8 +688,7 @@ small {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--brd);
-    border-radius: 2px
+    background: var(--brd)
 }
 
 /* ── Planet 5-tab layout ─────────────────────────── */
@@ -721,7 +705,6 @@ small {
     padding: 5px 4px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
     color: var(--dim);
     font-size: 10px;
     font-family: var(--font);
@@ -761,4 +744,197 @@ small {
         opacity: 1;
         transform: translateY(0)
     }
+}
+
+/* ── Generation Options Panel ────────────────── */
+.gen-opt-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.gen-opt-group strong {
+    font-size: 11px;
+    letter-spacing: .4px;
+    color: var(--brt)
+}
+
+.gen-opt-select {
+    width: 100%;
+    margin-top: 4px;
+    padding: 5px 8px;
+    background: rgba(0, 0, 0, .35);
+    border: 1px solid var(--brd);
+    color: var(--txt);
+    font-family: var(--font);
+    font-size: 11px;
+    outline: none;
+    transition: border-color .2s
+}
+
+.gen-opt-select:focus {
+    border-color: var(--acc)
+}
+
+.gen-opt-select option {
+    background: #1a1a1a;
+    color: var(--txt)
+}
+
+.gen-opt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px
+}
+
+.gen-opt-row>span:first-child {
+    font-size: 10px;
+    color: var(--dim);
+    flex-shrink: 0
+}
+
+.gen-opt-num {
+    width: 90px;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, .35);
+    border: 1px solid var(--brd);
+    color: var(--brt);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-align: right;
+    outline: none;
+    transition: border-color .2s
+}
+
+.gen-opt-num:focus {
+    border-color: var(--acc)
+}
+
+.gen-opt-slider {
+    width: 90px;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--brd);
+    outline: none
+}
+
+.gen-opt-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--acc);
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--acc)
+}
+
+.gen-opt-val {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--brt);
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0
+}
+
+.gen-opt-apply {
+    width: 100%;
+    margin-top: 8px;
+    padding: 9px;
+    background: linear-gradient(135deg, rgba(108,180,238,.12), rgba(64,216,216,.08));
+    border: 1px solid var(--acc);
+    color: var(--acc);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .3px
+}
+
+.gen-opt-apply:hover {
+    background: linear-gradient(135deg, rgba(108,180,238,.22), rgba(64,216,216,.14));
+    box-shadow: 0 0 16px rgba(108,180,238,.25)
+}
+
+/* ── Fullscreen setup / regen screen ────────────────── */
+#setupScreen,
+#genOptsOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden
+}
+
+#setupScreen.hidden,
+#genOptsOverlay.hidden {
+    display: none
+}
+
+.setup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 28px;
+    background: rgba(14, 14, 14, .97);
+    border-bottom: 1px solid var(--brd);
+    flex-shrink: 0
+}
+
+.setup-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px
+}
+
+.setup-go-btn {
+    padding: 10px 32px;
+    background: var(--acc);
+    border: none;
+    color: #000;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .3px;
+    transition: all .2s
+}
+
+.setup-go-btn:hover {
+    background: #8dc8ff;
+    box-shadow: 0 0 20px rgba(108, 180, 238, .4)
+}
+
+.setup-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    align-content: start
+}
+
+.setup-card {
+    background: var(--surf);
+    border: 1px solid var(--brd);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.setup-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--acc);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--brd)
 }
