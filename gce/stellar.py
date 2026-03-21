@@ -18,7 +18,7 @@ from .stellar_properties import PHASE_KR, SPECTRAL, _ms_lifetime, _ms_state, _sp
 from .stellar_tracks import stellar_evolution
 
 
-def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02):
+def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02, stellar_model=None):
     """Generate detailed H-R evolution track."""
     t_ms = _ms_lifetime(mass, metallicity_z=metallicity_z)
     total = age_max if age_max is not None else t_ms * 1.5 + 1
@@ -44,7 +44,7 @@ def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02):
 
     track = []
     for age in ages:
-        evo = stellar_evolution(mass, age, metallicity_z=metallicity_z)
+        evo = stellar_evolution(mass, age, metallicity_z=metallicity_z, model=stellar_model)
         track.append({
             'age': round(age, 6),
             'T_eff': evo['T_eff'],
@@ -118,7 +118,7 @@ def _overview_alive_until(mass, metallicity_z=0.02):
     return t_ms * 0.90
 
 
-def generate_galaxy(n_stars=25000, params=None, seed=42):
+def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
     rng = np.random.default_rng(seed)
     solver_params = coerce_solver_params(params)
     solver = GCESolver(solver_params)
@@ -174,7 +174,7 @@ def generate_galaxy(n_stars=25000, params=None, seed=42):
         ir, it = ir_arr[idx], it_arr[idx]
         metallicity_z = float(birth_metallicity[idx])
         star_age = max(current_time - births[idx], 0.0)
-        evo = stellar_evolution(mass, star_age, metallicity_z=metallicity_z)
+        evo = stellar_evolution(mass, star_age, metallicity_z=metallicity_z, model=stellar_model)
         sp, _, _ = _spectral(mass)
         types.append(sp)
         colors.append(evo['color'])

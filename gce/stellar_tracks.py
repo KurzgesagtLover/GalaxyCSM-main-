@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from .stellar_track_provider import get_precise_track_state, resolve_stellar_model
 from .stellar_properties import (
     PHASE_KR,
     _giant_track_scales,
@@ -39,6 +40,21 @@ def _format_state(age_gyr, initial_mass, phase, temperature, luminosity, radius_
         'max_radius_au': round(float(max_radius_rsun) * 0.00465, 5),
         'flare_activity': flare_activity,
     }
+
+
+def _format_raw_state(age_gyr, initial_mass, raw_state):
+    """Format a provider-specific raw state into the public payload."""
+    return _format_state(
+        age_gyr,
+        initial_mass,
+        raw_state['phase'],
+        raw_state['temperature'],
+        raw_state['luminosity'],
+        raw_state['radius_rsun'],
+        current_mass=raw_state.get('current_mass'),
+        max_radius_rsun=raw_state.get('max_radius_rsun'),
+        flare_activity=raw_state.get('flare_activity', 0),
+    )
 
 
 def _wd_mass_from_initial(initial_mass):
@@ -291,8 +307,8 @@ def _evolve_hypergiant(mass, age_gyr, frac, lum_ms, temp_ms, radius_ms,
     return _format_state(age_gyr, mass, bh['phase'], bh['temperature'], bh['luminosity'], bh['radius_rsun'], current_mass=bh['current_mass'], max_radius_rsun=max_radius)
 
 
-def stellar_evolution(mass, age_gyr, metallicity_z=0.02):
-    """Compute stellar properties at the requested age."""
+def _heuristic_stellar_evolution(mass, age_gyr, metallicity_z=0.02):
+    """Compute the original heuristic stellar state."""
     t_ms = _ms_lifetime(mass, metallicity_z=metallicity_z)
     lum_ms, temp_ms, radius_ms = _ms_state(mass, metallicity_z=metallicity_z)
     giant_l_scale, giant_t_scale, giant_r_scale = _giant_track_scales(metallicity_z)
@@ -324,6 +340,16 @@ def stellar_evolution(mass, age_gyr, metallicity_z=0.02):
         mass, age_gyr, frac, lum_ms, temp_ms, radius_ms,
         wind_scale, massive_t_scale, massive_r_scale, wr_t_scale,
     )
+
+
+def stellar_evolution(mass, age_gyr, metallicity_z=0.02, model=None):
+    """Compute stellar properties at the requested age."""
+    resolved_model = resolve_stellar_model(model)
+    if resolved_model in ('auto', 'precise'):
+        raw_state = get_precise_track_state(mass, age_gyr, metallicity_z)
+        if raw_state is not None:
+            return _format_raw_state(age_gyr, mass, raw_state)
+    return _heuristic_stellar_evolution(mass, age_gyr, metallicity_z=metallicity_z)
 
 
 __all__ = ['stellar_evolution']
