@@ -246,9 +246,12 @@ function renderStarDetail(d, el) {
         </div>`;
             if (p.has_moon_system) {
                 const mc = p.moon_count;
+                const _chKr = { giant_impact: '거대충돌', binary_terrestrial: '쌍행성', debris_chain: '파편열' };
+                const _chTag = (p.moon_system && p.moon_system.formation_channel && _chKr[p.moon_system.formation_channel])
+                    ? `<span style="font-size:8px;color:var(--dim);margin-right:4px">${_chKr[p.moon_system.formation_channel]}</span>` : '';
                 ph += `<div style="text-align:right; margin-top:4px;">
                     <button onclick="event.stopPropagation(); selectMoon(${d.star_id}, ${i})" style="font-size:10px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.1); border:1px solid var(--dim); color:var(--brt); cursor:pointer;">
-                        🌙 위성 ${mc}개 보기
+                        🌙 ${_chTag}위성 ${mc}개 보기
                     </button>
                 </div>`;
             }
@@ -436,7 +439,7 @@ function selectBelt(starId) {
             const barW = Math.min(logN / maxN * 120, 120);
             h += `<div style="display:flex;gap:4px;align-items:center;margin:1px 0">
               <span style="width:55px;text-align:right">${D < 1 ? D.toFixed(3) : D.toFixed(0)} km</span>
-              <div style="background:rgba(100,180,255,0.5);height:5px;width:${barW}px;border-radius:2px"></div>
+              <div style="background:rgba(108,180,238,0.45);height:5px;width:${barW}px;border-radius:2px"></div>
               <span>${szd.N_gt_D[i] < 1000 ? szd.N_gt_D[i].toFixed(0) : szd.N_gt_D[i].toExponential(1)}</span>
             </div>`;
         });
@@ -496,61 +499,16 @@ function selectMoon(starId, idx) {
 
     const pn = { rocky: '암석 행성', hot_rocky: '뜨거운 암석', gas_giant: '가스 거대행성', mini_neptune: '미니 해왕성' };
     const planetName = `${pn[planet.type] || planet.type} ${idx + 1}`;
+    const isGasType = planet.type === 'gas_giant' || planet.type === 'mini_neptune';
 
     let h = `<div style="margin-bottom:10px;font-size:11px;color:var(--dim)">
         <strong style="color:var(--brt)">${planetName}의 위성계</strong>
-        · 총 질량(규칙): ${sys.summary.total_regular_mass_earth} M⊕ · 공명 사슬: ${sys.summary.resonant_chain_count}쌍
     </div>`;
 
-    if (sys.cpd) {
-        h += `<div class="info-grid" style="margin-bottom:12px;">
-            <div class="info-row"><span class="lbl">CPD 질량</span><span class="val">${sys.cpd.mass_earth} M⊕</span></div>
-            <div class="info-row"><span class="lbl">CPD 수명</span><span class="val">${sys.cpd.dissipation_myr} Myr</span></div>
-            <div class="info-row"><span class="lbl">CPD 반경</span><span class="val">${sys.cpd.outer_radius_rp} R<sub>p</sub></span></div>
-            <div class="info-row"><span class="lbl">눈선(Snow Line)</span><span class="val">${sys.cpd.snow_line_rp} R<sub>p</sub></span></div>
-            <div class="info-row"><span class="lbl">사용가능고체질량</span><span class="val">${sys.cpd.accessible_solid_mass_earth} M⊕</span></div>
-        </div>`;
-    }
-
-    if (sys.regular_moons && sys.regular_moons.length > 0) {
-        h += `<div class="section-title">규칙 위성 (${sys.summary.n_regular}개)</div>
-        <table class="el-table" style="margin-bottom:12px;">
-            <thead><tr><th>이름</th><th>질량 (M⊕)</th><th>반경 (R⊕)</th><th>궤도 (R<sub>p</sub>)</th><th>유형</th></tr></thead>
-            <tbody>`;
-        sys.regular_moons.forEach(m => {
-            const fam = m.family === 'io_like' ? '<span style="color:#fa0;">이오형(암석)</span>' :
-                        m.family === 'europa_like' ? '<span style="color:#aaf;">유로파형(얼음/암석)</span>' :
-                        m.family === 'ganymede_like' ? '<span style="color:#8df;">가니메데형(거대얼음)</span>' :
-                        m.family === 'callisto_like' ? '<span style="color:#999;">칼리스토형(혼합)</span>' :
-                        m.family === 'titan_like' ? '<span style="color:#fd4;">타이탄형(휘발성)</span>' : m.family;
-            const resTag = m.resonance ? `<span title="${m.resonance.type} 공명 with ${m.resonance.with_inner}" style="font-size:9px;color:var(--acc);margin-left:4px;">[${m.resonance.type}]</span>` : '';
-            h += `<tr><td class="el-name">${m.name}${resTag}</td>
-                <td>${m.mass_earth > 0.001 ? m.mass_earth.toFixed(4) : m.mass_earth.toExponential(2)}</td>
-                <td>${m.radius_re.toFixed(3)}</td>
-                <td>${m.semi_major_rp.toFixed(1)}</td>
-                <td>${fam}</td></tr>`;
-        });
-        h += `</tbody></table>`;
-    }
-
-    if (sys.irregular_moons && sys.irregular_moons.length > 0) {
-        h += `<div class="section-title">불규칙 위성 (${sys.summary.n_irregular}개)</div>
-        <table class="el-table">
-            <thead><tr><th>이름</th><th>질량 (M⊕)</th><th>궤도 (R<sub>Hill</sub>)</th><th>이심률(e)</th><th>궤도방향</th></tr></thead>
-            <tbody>`;
-        sys.irregular_moons.forEach(m => {
-            const dir = m.retrograde ? '<span style="color:#f77">역행성</span>' : '순행성';
-            h += `<tr><td class="el-name">${m.name}</td>
-                <td>${m.mass_earth.toExponential(2)}</td>
-                <td>${m.semi_major_rhill.toFixed(3)}</td>
-                <td>${m.eccentricity.toFixed(2)}</td>
-                <td>${dir}</td></tr>`;
-        });
-        h += `</tbody></table>`;
-    }
-
-    if (sys.regular_moons.length === 0 && sys.irregular_moons.length === 0) {
-        h += `<p style="color:var(--dim);text-align:center;">생성된 위성이 없습니다.</p>`;
+    if (isGasType) {
+        h += _renderGasGiantMoonTab(sys, planet);
+    } else {
+        h += _renderRockyMoonTab(sys, planet);
     }
 
     el.innerHTML = h;
@@ -814,6 +772,19 @@ function selectPlanet(starId, idx) {
     }
     tabs[5].content = t6;
 
+    // TAB 7 — 위성계
+    let t7 = '<p style="color:var(--dim)">위성 데이터 없음</p>';
+    const ms = planet.moon_system;
+    if (ms) {
+        const isGasType = planet.type === 'gas_giant' || planet.type === 'mini_neptune';
+        if (isGasType) {
+            t7 = _renderGasGiantMoonTab(ms, planet);
+        } else {
+            t7 = _renderRockyMoonTab(ms, planet);
+        }
+    }
+    tabs.push({ id: 'moon', label: '위성계', content: t7 });
+
     const header = `<div style="margin-bottom:6px;font-size:11px;color:var(--dim)">
       <strong style="color:var(--brt)">${pn[planet.type] || planet.type} ${idx + 1}</strong>
       · ${planet.mass_earth} M⊕ · ${planet.semi_major_au} AU
@@ -836,6 +807,182 @@ function switchPlanetTab(id) {
     document.querySelectorAll('.ptab-panel').forEach(p => p.classList.add('hidden'));
     document.getElementById('ptab-' + id)?.classList.add('active');
     document.getElementById('ptab-panel-' + id)?.classList.remove('hidden');
+}
+
+function _renderGasGiantMoonTab(sys, planet) {
+    const sm = sys.summary || {};
+    let h = `<div style="margin-bottom:8px;font-size:11px;color:var(--dim)">
+      규칙위성 <strong style="color:var(--brt)">${sm.n_regular || 0}</strong>개
+      · 불규칙위성 <strong style="color:var(--brt)">${sm.n_irregular || 0}</strong>개
+      · 총질량 <strong style="color:var(--brt)">${sm.total_regular_mass_earth || 0}</strong> M⊕
+      · 공명쌍 ${sm.resonant_chain_count || 0}
+    </div>`;
+    if (sys.cpd) {
+        const c = sys.cpd;
+        h += `<div class="info-grid" style="margin-bottom:10px">
+          <div class="info-row"><span class="lbl">CPD 질량</span><span class="val">${c.mass_earth} M⊕</span></div>
+          <div class="info-row"><span class="lbl">CPD 반경</span><span class="val">${c.outer_radius_rp} R<sub>p</sub></span></div>
+          <div class="info-row"><span class="lbl">눈선</span><span class="val">${c.snow_line_rp} R<sub>p</sub></span></div>
+          <div class="info-row"><span class="lbl">고체 질량</span><span class="val">${c.accessible_solid_mass_earth} M⊕</span></div>
+          <div class="info-row"><span class="lbl">수명</span><span class="val">${c.dissipation_myr} Myr</span></div>
+          <div class="info-row"><span class="lbl">호스트 체제</span><span class="val">${c.host_regime || '-'}</span></div>
+        </div>`;
+    }
+    if (sys.regular_moons && sys.regular_moons.length > 0) {
+        h += `<div class="section-title">규칙 위성 (${sys.regular_moons.length})</div>
+        <table class="el-table" style="margin-bottom:10px">
+        <thead><tr><th>이름</th><th>질량(M⊕)</th><th>궤도(R<sub>p</sub>)</th><th>유형</th></tr></thead><tbody>`;
+        const famKr = { io_like: '이오형', europa_like: '유로파형', ganymede_like: '가니메데형', callisto_like: '칼리스토형', titan_like: '타이탄형' };
+        const famClr = { io_like: '#fa0', europa_like: '#aaf', ganymede_like: '#8df', callisto_like: '#999', titan_like: '#fd4' };
+        sys.regular_moons.forEach(m => {
+            const fLabel = famKr[m.family] || m.family;
+            const fColor = famClr[m.family] || 'var(--dim)';
+            const resTag = m.resonance ? ` <span style="font-size:8px;color:var(--acc)">[${m.resonance.type}]</span>` : '';
+            h += `<tr><td class="el-name">${m.name}${resTag}</td>
+              <td>${m.mass_earth > 0.001 ? m.mass_earth.toFixed(4) : m.mass_earth.toExponential(2)}</td>
+              <td>${m.semi_major_rp.toFixed(1)}</td>
+              <td><span style="color:${fColor}">${fLabel}</span></td></tr>`;
+        });
+        h += '</tbody></table>';
+    }
+    if (sys.irregular_moons && sys.irregular_moons.length > 0) {
+        h += `<div class="section-title">불규칙 위성 (${sys.irregular_moons.length})</div>
+        <table class="el-table">
+        <thead><tr><th>이름</th><th>질량(M⊕)</th><th>궤도(R<sub>Hill</sub>)</th><th>e</th><th>방향</th></tr></thead><tbody>`;
+        sys.irregular_moons.forEach(m => {
+            const dir = m.retrograde ? '<span style="color:#f77">역행</span>' : '순행';
+            h += `<tr><td class="el-name">${m.name}</td>
+              <td>${m.mass_earth.toExponential(2)}</td>
+              <td>${m.semi_major_rhill.toFixed(3)}</td>
+              <td>${m.eccentricity.toFixed(2)}</td>
+              <td>${dir}</td></tr>`;
+        });
+        h += '</tbody></table>';
+    }
+    if ((!sys.regular_moons || sys.regular_moons.length === 0) && (!sys.irregular_moons || sys.irregular_moons.length === 0)) {
+        h += '<p style="color:var(--dim);text-align:center;margin-top:8px">생성된 위성이 없습니다.</p>';
+    }
+    return h;
+}
+
+function _renderRockyMoonTab(sys, planet) {
+    const channelKr = {
+        giant_impact: '거대 충돌',
+        binary_terrestrial: '쌍행성형 충돌',
+        debris_chain: '파편열 형성',
+        none: '위성 없음',
+    };
+    const channelClr = {
+        giant_impact: '#4facfe',
+        binary_terrestrial: '#f0a',
+        debris_chain: '#fa4',
+        none: 'var(--dim)',
+    };
+    const sm = sys.summary || {};
+    const imp = sys.impact_state || {};
+    const dd = sys.debris_disk || {};
+    const ch = sys.formation_channel || 'none';
+
+    let h = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="background:${channelClr[ch] || 'var(--dim)'};padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700;color:#000">
+        ${channelKr[ch] || ch}
+      </span>`;
+    if (sm.binary_like) {
+        h += `<span style="background:#f0a;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;color:#000">쌍행성</span>`;
+    }
+    h += `</div>`;
+
+    if (ch === 'none') {
+        h += `<div class="info-grid" style="margin-bottom:10px">
+          <div class="info-row"><span class="lbl">충돌 확률</span><span class="val">${((imp.giant_impact_prob || 0) * 100).toFixed(1)}%</span></div>
+          <div class="info-row"><span class="lbl">Hill 반경</span><span class="val">${imp.hill_radius_rp || '-'} R<sub>p</sub></span></div>
+          <div class="info-row"><span class="lbl">안정 한계</span><span class="val">${imp.stable_outer_rp || '-'} R<sub>p</sub></span></div>
+          <div class="info-row"><span class="lbl">Roche 한계</span><span class="val">${imp.roche_limit_rp || '-'} R<sub>p</sub></span></div>
+          <div class="info-row"><span class="lbl">생존 인자</span><span class="val">${imp.survival_factor || '-'}</span></div>
+          <div class="info-row"><span class="lbl">항성 조석 패널티</span><span class="val">${imp.stellar_tide_penalty || '-'}</span></div>
+        </div>
+        <p style="color:var(--dim);text-align:center">조건에 따라 위성이 형성되지 않았습니다.</p>`;
+        return h;
+    }
+
+    h += `<div class="info-grid" style="margin-bottom:10px">
+      <div class="info-row"><span class="lbl">충돌 확률</span><span class="val">${((imp.giant_impact_prob || 0) * 100).toFixed(1)}%</span></div>
+      <div class="info-row"><span class="lbl">임팩터 비율 γ</span><span class="val">${imp.impactor_mass_ratio || '-'}</span></div>
+      <div class="info-row"><span class="lbl">충돌속도/탈출속도</span><span class="val">${imp.impact_velocity_over_escape || '-'}</span></div>
+      <div class="info-row"><span class="lbl">충돌 각도</span><span class="val">${imp.impact_angle_deg || '-'}°</span></div>
+      <div class="info-row"><span class="lbl">각운동량 지표</span><span class="val">${imp.angular_momentum_proxy || '-'}</span></div>
+      <div class="info-row"><span class="lbl">Late Veneer 점수</span><span class="val">${imp.late_veneer_score || '-'}</span></div>
+    </div>`;
+
+    h += `<div class="section-title">파편 디스크</div>
+    <div class="info-grid" style="margin-bottom:10px">
+      <div class="info-row"><span class="lbl">디스크 질량</span><span class="val">${dd.disk_mass_earth || 0} M⊕</span></div>
+      <div class="info-row"><span class="lbl">질량 분율</span><span class="val">${((dd.disk_mass_fraction || 0) * 100).toFixed(3)}%</span></div>
+      <div class="info-row"><span class="lbl">규산염</span><span class="val">${((dd.silicate_fraction || 0) * 100).toFixed(1)}%</span></div>
+      <div class="info-row"><span class="lbl">철</span><span class="val">${((dd.iron_fraction || 0) * 100).toFixed(1)}%</span></div>
+      <div class="info-row"><span class="lbl">휘발성물질</span><span class="val">${((dd.volatile_fraction || 0) * 100).toFixed(1)}%</span></div>
+    </div>`;
+
+    const compBar = `<div style="display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:10px">
+      <div style="width:${(dd.silicate_fraction || 0) * 100}%;background:#c8960f" title="규산염"></div>
+      <div style="width:${(dd.iron_fraction || 0) * 100}%;background:#b83220" title="철"></div>
+      <div style="width:${(dd.volatile_fraction || 0) * 100}%;background:#4facfe" title="휘발성"></div>
+    </div>
+    <div style="display:flex;gap:12px;font-size:9px;color:var(--dim);margin-bottom:10px">
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#c8960f;vertical-align:middle;margin-right:2px"></span>규산염</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#b83220;vertical-align:middle;margin-right:2px"></span>철</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#4facfe;vertical-align:middle;margin-right:2px"></span>휘발성</span>
+    </div>`;
+    h += compBar;
+
+    h += `<div class="section-title">위성 요약</div>
+    <div class="info-grid" style="margin-bottom:10px">
+      <div class="info-row"><span class="lbl">대형 위성</span><span class="val">${sm.n_major || 0}개</span></div>
+      <div class="info-row"><span class="lbl">소형 위성</span><span class="val">${sm.n_minor || 0}개</span></div>
+      <div class="info-row"><span class="lbl">최대 위성 질량</span><span class="val">${sm.largest_moon_mass_earth || 0} M⊕</span></div>
+      <div class="info-row"><span class="lbl">총 위성 질량</span><span class="val">${sm.total_moon_mass_earth || 0} M⊕</span></div>
+      <div class="info-row"><span class="lbl">위성/행성 질량비</span><span class="val">${sm.moon_to_planet_mass_ratio || 0}</span></div>
+    </div>`;
+
+    const famKrMoon = { moon_like: '달형', charon_like: '카론형', volatile_impact_moon: '휘발성충돌', phobos_like: '포보스형', deimos_like: '데이모스형' };
+    const famClrMoon = { moon_like: '#ddd', charon_like: '#f0a', volatile_impact_moon: '#4df', phobos_like: '#a88', deimos_like: '#886' };
+
+    if (sys.major_moons && sys.major_moons.length > 0) {
+        h += `<div class="section-title">대형 위성</div>
+        <table class="el-table" style="margin-bottom:8px">
+        <thead><tr><th>이름</th><th>질량(M⊕)</th><th>궤도(R<sub>p</sub>)</th><th>주기(d)</th><th>유형</th></tr></thead><tbody>`;
+        sys.major_moons.forEach(m => {
+            const fLabel = famKrMoon[m.family] || m.family;
+            const fColor = famClrMoon[m.family] || 'var(--dim)';
+            h += `<tr><td class="el-name">${m.name}</td>
+              <td>${m.mass_earth > 0.001 ? m.mass_earth.toFixed(4) : m.mass_earth.toExponential(2)}</td>
+              <td>${m.semi_major_rp.toFixed(1)}</td>
+              <td>${m.orbital_period_days.toFixed(2)}</td>
+              <td><span style="color:${fColor}">${fLabel}</span></td></tr>`;
+        });
+        h += '</tbody></table>';
+    }
+
+    if (sys.minor_moons && sys.minor_moons.length > 0) {
+        h += `<div class="section-title">소형 위성</div>
+        <table class="el-table">
+        <thead><tr><th>이름</th><th>질량(M⊕)</th><th>궤도(R<sub>p</sub>)</th><th>주기(d)</th><th>유형</th></tr></thead><tbody>`;
+        sys.minor_moons.forEach(m => {
+            const fLabel = famKrMoon[m.family] || m.family;
+            const fColor = famClrMoon[m.family] || 'var(--dim)';
+            h += `<tr><td class="el-name">${m.name}</td>
+              <td>${m.mass_earth.toExponential(2)}</td>
+              <td>${m.semi_major_rp.toFixed(1)}</td>
+              <td>${m.orbital_period_days.toFixed(2)}</td>
+              <td><span style="color:${fColor}">${fLabel}</span></td></tr>`;
+        });
+        h += '</tbody></table>';
+    }
+
+    if ((!sys.major_moons || sys.major_moons.length === 0) && (!sys.minor_moons || sys.minor_moons.length === 0)) {
+        h += '<p style="color:var(--dim);text-align:center;margin-top:8px">위성이 형성되지 않았습니다.</p>';
+    }
+    return h;
 }
 
 

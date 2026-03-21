@@ -1,14 +1,14 @@
 :root {
-    --bg: #060810;
-    --bg2: #0c1120;
-    --surf: rgba(12, 18, 36, .94);
-    --brd: rgba(100, 140, 255, .12);
-    --brd2: rgba(100, 180, 255, .3);
-    --txt: #d0d8ee;
-    --dim: #6a78a0;
-    --brt: #f0f4ff;
-    --acc: #4facfe;
-    --acc2: #00f2fe;
+    --bg: #0a0a0a;
+    --bg2: #141414;
+    --surf: rgba(22, 22, 22, .96);
+    --brd: rgba(255, 255, 255, .08);
+    --brd2: rgba(255, 255, 255, .18);
+    --txt: #d4d4d4;
+    --dim: #7a7a7a;
+    --brt: #f0f0f0;
+    --acc: #6cb4ee;
+    --acc2: #40d8d8;
     --acc3: #f77062;
     --ok: #4ade80;
     --warn: #facc15;
@@ -37,7 +37,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 18px;
-    background: rgba(10, 14, 28, .95);
+    background: rgba(14, 14, 14, .97);
     border-bottom: 1px solid var(--brd);
     z-index: 20;
     position: relative
@@ -103,7 +103,7 @@ small {
 
 .hdr-btn:hover {
     border-color: var(--acc);
-    box-shadow: 0 0 10px rgba(79, 172, 254, .2)
+    box-shadow: 0 0 10px rgba(108, 180, 238, .2)
 }
 
 .badge {
@@ -161,7 +161,7 @@ small {
     align-items: center;
     gap: 10px;
     padding: 10px 20px;
-    background: linear-gradient(transparent, rgba(6, 8, 16, .96));
+    background: linear-gradient(transparent, rgba(10, 10, 10, .96));
     z-index: 5
 }
 
@@ -181,7 +181,7 @@ small {
 
 #btnPlay:hover {
     border-color: var(--acc);
-    box-shadow: 0 0 10px rgba(79, 172, 254, .3)
+    box-shadow: 0 0 10px rgba(108, 180, 238, .3)
 }
 
 #timeSlider {
@@ -212,7 +212,7 @@ small {
 }
 
 .sep {
-    color: rgba(100, 140, 255, .2)
+    color: rgba(255, 255, 255, .12)
 }
 
 #starCount,
@@ -291,7 +291,7 @@ small {
 
 .expand-toggle:hover {
     border-color: var(--acc);
-    background: rgba(79, 172, 254, .08)
+    background: rgba(108, 180, 238, .08)
 }
 
 .panel-header {
@@ -351,7 +351,7 @@ small {
     justify-content: space-between;
     align-items: center;
     padding: 8px 14px;
-    background: rgba(20, 28, 50, .9);
+    background: rgba(18, 18, 18, .95);
     border-bottom: 1px solid var(--brd);
     cursor: move;
     font-size: 12px;
@@ -439,12 +439,12 @@ small {
 
 .planet-card:hover {
     border-color: var(--acc);
-    background: rgba(79, 172, 254, .04)
+    background: rgba(255, 255, 255, .04)
 }
 
 .planet-card.selected {
     border-color: var(--acc2);
-    background: rgba(0, 242, 254, .06)
+    background: rgba(64, 216, 216, .06)
 }
 
 .hz-tag {
@@ -466,7 +466,7 @@ small {
 }
 
 .phase-MS {
-    background: rgba(79, 172, 254, .15);
+    background: rgba(108, 180, 238, .15);
     color: var(--acc)
 }
 
@@ -476,13 +476,13 @@ small {
 }
 
 .phase-WD {
-    background: rgba(208, 216, 255, .15);
-    color: #d0d8ff
+    background: rgba(210, 210, 220, .12);
+    color: #d0d0dd
 }
 
 .phase-NS {
-    background: rgba(128, 128, 255, .2);
-    color: #8080ff
+    background: rgba(140, 140, 220, .15);
+    color: #9090dd
 }
 
 .phase-BH {
@@ -491,8 +491,8 @@ small {
 }
 
 .phase-BSG {
-    background: rgba(146, 181, 255, .2);
-    color: #92b5ff
+    background: rgba(146, 180, 230, .15);
+    color: #92b5ee
 }
 
 .phase-RSG {
@@ -501,13 +501,13 @@ small {
 }
 
 .phase-LBV {
-    background: rgba(96, 224, 255, .15);
-    color: #60e0ff
+    background: rgba(96, 210, 230, .12);
+    color: #60d0e8
 }
 
 .phase-WR {
-    background: rgba(160, 96, 255, .2);
-    color: #a060ff
+    background: rgba(160, 110, 230, .15);
+    color: #a070e8
 }
 
 .phase-SN {
@@ -611,11 +611,11 @@ small {
     padding: 2px 4px;
     font-family: var(--mono);
     font-size: 10px;
-    border-bottom: 1px solid rgba(100, 140, 255, .05)
+    border-bottom: 1px solid rgba(255, 255, 255, .04)
 }
 
 .el-table tr:hover {
-    background: rgba(79, 172, 254, .04)
+    background: rgba(255, 255, 255, .03)
 }
 
 .el-table .el-name {
@@ -650,7 +650,7 @@ small {
 #overlay {
     position: fixed;
     inset: 0;
-    background: rgba(6, 8, 16, .92);
+    background: rgba(8, 8, 8, .94);
     backdrop-filter: blur(6px);
     display: none;
     align-items: center;
@@ -734,12 +734,12 @@ small {
 
 .ptab-btn:hover {
     color: var(--txt);
-    background: rgba(79, 172, 254, .06)
+    background: rgba(255, 255, 255, .05)
 }
 
 .ptab-btn.active {
-    background: rgba(79, 172, 254, .12);
-    border-color: rgba(79, 172, 254, .35);
+    background: rgba(108, 180, 238, .10);
+    border-color: rgba(108, 180, 238, .30);
     color: var(--acc)
 }
 

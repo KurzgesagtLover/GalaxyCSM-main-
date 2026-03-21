@@ -42,6 +42,7 @@ function disposeStarField() {
     starPoints.geometry?.dispose();
     starPoints.material?.dispose();
     starPoints = null;
+    _disposeHeatmap();
 }
 
 // Log-scale time mapping
@@ -116,7 +117,7 @@ function setupThree() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(w.clientWidth, w.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x060810, 1);
+    renderer.setClearColor(0x0a0a0a, 1);
     w.appendChild(renderer.domElement);
     raycaster = new THREE.Raycaster();
     raycaster.params.Points.threshold = 0.15;
@@ -360,6 +361,128 @@ async function loadGalaxy() {
 
 let origColor, origSize;
 
+/* ---- Heatmap Field Overlay ---- */
+let heatmapMesh = null, _hmCanvas = null, _hmCtx = null, _hmTexture = null;
+const HM_SIZE = 512;
+const HM_RADIUS_KPC = 22;
+
+function _disposeHeatmap() {
+    if (!heatmapMesh) return;
+    scene.remove(heatmapMesh);
+    heatmapMesh.geometry?.dispose();
+    heatmapMesh.material?.dispose();
+    if (_hmTexture) _hmTexture.dispose();
+    heatmapMesh = null; _hmTexture = null;
+}
+
+function _buildHeatmapDisk() {
+    _disposeHeatmap();
+    _hmCanvas = document.createElement('canvas');
+    _hmCanvas.width = HM_SIZE; _hmCanvas.height = HM_SIZE;
+    _hmCtx = _hmCanvas.getContext('2d');
+
+    _hmTexture = new THREE.CanvasTexture(_hmCanvas);
+    _hmTexture.minFilter = THREE.LinearFilter;
+    _hmTexture.magFilter = THREE.LinearFilter;
+
+    const geo = new THREE.PlaneGeometry(HM_RADIUS_KPC * 2, HM_RADIUS_KPC * 2);
+    const mat = new THREE.MeshBasicMaterial({
+        map: _hmTexture, transparent: true,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+    heatmapMesh = new THREE.Mesh(geo, mat);
+    heatmapMesh.rotation.x = -Math.PI / 2;
+    heatmapMesh.position.y = -0.08;
+    heatmapMesh.renderOrder = -1;
+    heatmapMesh.visible = false;
+    scene.add(heatmapMesh);
+}
+
+function _lerpZone(vals, radii, distKpc) {
+    const n = radii.length;
+    if (distKpc <= radii[0]) return vals[0];
+    if (distKpc >= radii[n - 1]) return vals[n - 1];
+    for (let j = 1; j < n; j++) {
+        if (distKpc <= radii[j]) {
+            const t = (distKpc - radii[j - 1]) / (radii[j] - radii[j - 1]);
+            return vals[j - 1] + t * (vals[j] - vals[j - 1]);
+        }
+    }
+    return vals[n - 1];
+}
+
+function _updateHeatmapTexture() {
+    if (!heatmapMesh || !galaxyData) return;
+    const mode = document.getElementById('mapModeSelect').value;
+    if (mode === 'spectrum') { heatmapMesh.visible = false; return; }
+    heatmapMesh.visible = true;
+
+    const gce = galaxyData.gce;
+    const radii = gce.radius;
+    const nZ = radii.length;
+    const rMax = radii[nZ - 1];
+
+    let it = 0;
+    for (let i = 0; i < gce.time.length; i++) { if (gce.time[i] <= currentTime) it = i; }
+
+    const zv = new Float32Array(nZ);
+    const zv2 = (mode === 'ghz') ? new Float32Array(nZ) : null;
+
+    for (let iz = 0; iz < nZ; iz++) {
+        if (mode === 'radiation') {
+            zv[iz] = gce.sn2_rate[iz][it];
+        } else if (mode === 'metallicity') {
+            zv[iz] = Math.log10(Math.max(gce.metallicity[iz][it], 1e-10) / 0.0134);
+        } else if (mode === 'ghz') {
+            const met = Math.log10(Math.max(gce.metallicity[iz][it], 1e-10) / 0.0134);
+            const rad = gce.sn2_rate[iz][it];
+            zv[iz] = Math.max(0, Math.min(1, (met + 1.0) / 0.8))
+                   * Math.max(0, Math.min(1, (0.3 - rad) / 0.25));
+        }
+    }
+
+    const W = HM_SIZE, H = HM_SIZE, cx = W / 2, cy = H / 2;
+    const imgData = _hmCtx.createImageData(W, H);
+    const d = imgData.data;
+
+    for (let py = 0; py < H; py++) {
+        for (let px = 0; px < W; px++) {
+            const dx = px - cx, dy = py - cy;
+            const distPx = Math.sqrt(dx * dx + dy * dy);
+            const distKpc = (distPx / cx) * HM_RADIUS_KPC;
+
+            const val = _lerpZone(zv, radii, distKpc);
+            const edge = 1.0 - Math.pow(Math.min(distKpc / (rMax + 3), 1.0), 3.5);
+
+            let r, g, b, a;
+            if (mode === 'radiation') {
+                const I = Math.pow(Math.max(0, Math.min(val, 1.0)), 0.55);
+                r = (0.10 + I * 0.90) * 255;
+                g = I * 0.95 * 255;
+                b = (0.30 + I * 0.70) * 255;
+                a = (0.08 + I * 0.38) * edge * 255;
+            } else if (mode === 'metallicity') {
+                const f = Math.max(0, Math.min(1, (val + 1.0) / 1.5));
+                r = f * 255;
+                g = (0.12 + 0.15 * (1 - Math.abs(f - 0.5) * 2)) * 255;
+                b = (1.0 - f) * 255;
+                a = (0.08 + 0.32 * (0.3 + 0.7 * f)) * edge * 255;
+            } else {
+                const v = Math.max(0, Math.min(1, val));
+                r = (1 - v) * 55;
+                g = v * 210 + (1 - v) * 28;
+                b = v * 70 + (1 - v) * 28;
+                a = (0.05 + 0.28 * v) * edge * 255;
+            }
+
+            const idx = (py * W + px) * 4;
+            d[idx] = r; d[idx + 1] = g; d[idx + 2] = b; d[idx + 3] = a;
+        }
+    }
+    _hmCtx.putImageData(imgData, 0, 0);
+    _hmTexture.needsUpdate = true;
+}
+
 function buildStarField() {
     const s = galaxyData.stars, n = s.x.length;
     const g = new THREE.BufferGeometry();
@@ -399,6 +522,7 @@ function buildStarField() {
     starPoints = new THREE.Points(g, mat);
     scene.add(starPoints);
 
+    _buildHeatmapDisk();
     updateColorsAndFilters(); // initial state
 }
 
@@ -522,6 +646,8 @@ function updateColorsAndFilters() {
     colAttr.needsUpdate = true;
     szAttr.needsUpdate = true;
     document.getElementById('aliveCount').textContent = aliveCount.toLocaleString() + ' visible';
+
+    _updateHeatmapTexture();
 }
 
 // Add event listeners to filters to trigger update

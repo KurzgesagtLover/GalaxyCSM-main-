@@ -4,6 +4,8 @@ Configuration and constants for Galactic Chemical Evolution model.
 Contains: tracked elements, BBN abundances, solar abundances,
 and default simulation parameters.
 """
+import os
+
 import numpy as np
 
 # ============================================================
@@ -62,6 +64,16 @@ DEFAULT_GCE_T_MAX = 20.0
 DEFAULT_VIEW_T_MAX = 10000.0
 GCE_T_MAX_MIN = 0.1
 GCE_T_MAX_MAX = 100.0
+
+STELLAR_MODEL_OPTIONS = ('heuristic', 'precise', 'auto')
+DEFAULT_STELLAR_MODEL = 'auto'
+STELLAR_TRACKS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'stellar_tracks')
+)
+DEFAULT_PRECISE_TRACK_PACK = os.path.join(
+    STELLAR_TRACKS_DIR,
+    'demo_precise_tracks.json',
+)
 
 # ============================================================
 # Default simulation parameters
@@ -122,3 +134,12 @@ def coerce_solver_params(params=None):
     p['r_max'] = r_max
     p['dr'] = dr
     return p
+
+
+def coerce_stellar_model(model=None):
+    """Resolve a stellar-track engine selector."""
+    resolved = DEFAULT_STELLAR_MODEL if model is None else str(model).strip().lower()
+    if resolved not in STELLAR_MODEL_OPTIONS:
+        allowed = ', '.join(STELLAR_MODEL_OPTIONS)
+        raise ValueError(f"stellar_model must be one of: {allowed}")
+    return resolved

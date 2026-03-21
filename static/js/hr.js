@@ -107,7 +107,7 @@ function plotHR(data) {
     // Region labels as annotations
     const annotations = [
         { x: 4.1, y: -2.5, text: '백색왜성', showarrow: false, font: { color: 'rgba(208,216,255,0.4)', size: 10 } },
-        { x: 4.15, y: 2, text: '주계열', showarrow: false, font: { color: 'rgba(79,172,254,0.4)', size: 10 }, textangle: -50 },
+        { x: 4.15, y: 2, text: '주계열', showarrow: false, font: { color: 'rgba(108,180,238,0.4)', size: 10 }, textangle: -50 },
         { x: 3.5, y: 3, text: '적색거성', showarrow: false, font: { color: 'rgba(255,128,64,0.4)', size: 10 } },
         { x: 4.3, y: 5.5, text: '초거성', showarrow: false, font: { color: 'rgba(255,144,224,0.4)', size: 10 } },
         { x: 4.6, y: 5, text: 'LBV / WR', showarrow: false, font: { color: 'rgba(160,96,255,0.4)', size: 9 } },
@@ -134,22 +134,22 @@ function plotHR(data) {
     Plotly.newPlot('hrPlot', traces, {
         title: {
             text: `H-R 다이어그램 — ${data.mass} M☉ (#${data.star_id})`,
-            font: { color: '#d0d8ee', size: 14, family: 'Outfit' }
+            font: { color: '#d4d4d4', size: 14, family: 'Outfit' }
         },
         xaxis: {
             title: 'log T<sub>eff</sub> (K)', autorange: false, range: [5.2, 3.2],
-            color: '#6a78a0', gridcolor: 'rgba(100,140,255,0.06)'
+            color: '#7a7a7a', gridcolor: 'rgba(255,255,255,0.05)'
         },
         yaxis: {
             title: 'log L/L☉', autorange: false, range: [-5, 7],
-            color: '#6a78a0', gridcolor: 'rgba(100,140,255,0.06)'
+            color: '#7a7a7a', gridcolor: 'rgba(255,255,255,0.05)'
         },
-        paper_bgcolor: 'rgba(12,18,36,0.95)', plot_bgcolor: 'rgba(0,0,0,0)',
-        font: { family: 'Outfit', color: '#d0d8ee' },
+        paper_bgcolor: 'rgba(22,22,22,0.96)', plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: 'Outfit', color: '#d4d4d4' },
         showlegend: true,
         legend: {
-            font: { size: 9 }, bgcolor: 'rgba(12,18,36,0.7)',
-            bordercolor: 'rgba(100,140,255,0.1)', borderwidth: 1, x: 0.01, y: 0.99
+            font: { size: 9 }, bgcolor: 'rgba(22,22,22,0.8)',
+            bordercolor: 'rgba(255,255,255,0.08)', borderwidth: 1, x: 0.01, y: 0.99
         },
         margin: { t: 40, b: 55, l: 55, r: 20 },
         images, annotations,
