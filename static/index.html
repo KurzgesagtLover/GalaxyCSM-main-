@@ -98,13 +98,30 @@
         </div>
 
         <!-- GCE Chart Window -->
-        <div id="gceWindow" class="float-window hidden" style="width:640px;height:500px;left:20px;bottom:80px">
+        <div id="gceWindow" class="float-window hidden" style="width:960px;height:640px;left:20px;bottom:60px">
             <div class="win-header" onmousedown="startDrag(event,'gceWindow')">
                 <span>GCE 원소 진화</span>
                 <button class="close-btn" onclick="closePanel('gceWindow')">&times;</button>
             </div>
-            <div id="gceContent" class="win-body">
-                <div id="gcePlot" style="width:100%;height:420px"></div>
+            <div class="win-body" style="display:flex;flex-direction:column;gap:0;padding:0;max-height:calc(100% - 36px)">
+                <!-- Toolbar -->
+                <div id="gceToolbar" class="gce-toolbar">
+                    <div class="gce-tabs" id="gceTabs">
+                        <button class="gce-tab active" data-mode="xh">[X/H] 진화</button>
+                        <button class="gce-tab" data-mode="mass_frac">질량 분율</button>
+                        <button class="gce-tab" data-mode="feh_radial">[Fe/H] 반경별</button>
+                        <button class="gce-tab" data-mode="mass_budget">가스/항성 질량</button>
+                        <button class="gce-tab" data-mode="xfe_feh">[X/Fe] vs [Fe/H]</button>
+                    </div>
+                    <div class="gce-zone-wrap">
+                        <span class="gce-zone-label">반경 구역</span>
+                        <select id="gceZoneSelect" class="gce-zone-select"></select>
+                    </div>
+                </div>
+                <!-- Element toggles -->
+                <div id="gceElementBar" class="gce-element-bar"></div>
+                <!-- Chart -->
+                <div id="gcePlot" style="flex:1;min-height:0"></div>
             </div>
         </div>
 
@@ -368,6 +385,7 @@
     <script src="/js/app.js"></script>
     <script src="/js/detail.js"></script>
     <script src="/js/hr.js"></script>
+    <script src="/js/gce_chart.js"></script>
     <script src="/js/windowing.js"></script>
 </body>
 

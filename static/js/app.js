@@ -74,6 +74,50 @@ function fmtMass(kg) {
     return kg.toExponential(2) + ' kg';
 }
 
+function truncNumber(value, digits = 0) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return n;
+    const scale = 10 ** digits;
+    return n >= 0 ? Math.floor(n * scale) / scale : Math.ceil(n * scale) / scale;
+}
+
+function fmtFixedTrunc(value, digits = 2) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    return truncNumber(n, digits).toFixed(digits);
+}
+
+function fmtExpTrunc(value, digits = 2) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    if (n === 0) return `0.${'0'.repeat(Math.max(digits, 0))}e+0`;
+    const sign = n < 0 ? -1 : 1;
+    const abs = Math.abs(n);
+    const exponent = Math.floor(Math.log10(abs));
+    const mantissa = sign * abs / (10 ** exponent);
+    return `${fmtFixedTrunc(mantissa, digits)}e${exponent >= 0 ? '+' : ''}${exponent}`;
+}
+
+function fmtAutoSci(value, options = {}) {
+    const {
+        fixed = 2,
+        exp = 2,
+        small = 1e-3,
+        large = 1e4,
+    } = options;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    const abs = Math.abs(n);
+    if (abs !== 0 && (abs < small || abs >= large)) return fmtExpTrunc(n, exp);
+    return fmtFixedTrunc(n, fixed);
+}
+
+function fmtPercentTrunc(value, digits = 1) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    return `${fmtFixedTrunc(n * 100, digits)}%`;
+}
+
 /* ---- Shaders ---- */
 const VS = `
   attribute float aSize; attribute float aBirth; attribute float aDeath; attribute vec3 aColor;
@@ -144,7 +188,7 @@ function setupThree() {
     });
     document.getElementById('timeSlider').addEventListener('input', e => {
         currentTime = sliderToTime(parseFloat(e.target.value));
-        document.getElementById('timeLabel').textContent = currentTime.toFixed(2) + ' Gyr';
+        document.getElementById('timeLabel').textContent = fmtFixedTrunc(currentTime, 2) + ' Gyr';
         updateUniforms();
         onTimeChange();
     });
@@ -162,7 +206,7 @@ function animate() {
         currentTime += playSpeed;
         if (currentTime > tMax) { currentTime = tMax; playing = false; document.getElementById('btnPlay').textContent = '▶'; }
         document.getElementById('timeSlider').value = timeToSlider(currentTime);
-        document.getElementById('timeLabel').textContent = currentTime.toFixed(2) + ' Gyr';
+        document.getElementById('timeLabel').textContent = fmtFixedTrunc(currentTime, 2) + ' Gyr';
         updateUniforms();
         onTimeChange();
     }
@@ -181,10 +225,13 @@ function onTimeChange() {
     updateHRMarker();
     // Debounced full server re-fetch for planet differentiation
     clearTimeout(_detailTimer);
-    _detailTimer = setTimeout(() => loadStarDetail(selectedStarId, true), 300);
+    _detailTimer = setTimeout(() => loadStarDetail(selectedStarId, true), 120);
 
     // Also update map modes if radiating or GHZ
     updateColorsAndFilters();
+
+    // GCE chart time cursor
+    if (typeof updateGCETimeCursor === 'function') updateGCETimeCursor();
 }
 
 function switchGraphMode(mode) {
@@ -251,7 +298,7 @@ function syncDotToMode() {
 }
 
 function updateActiveValues(px, py) {
-    const formatOut = (p) => (p.log && p.val < 0.01) ? p.val.toExponential(2) : p.val.toFixed(2);
+    const formatOut = (p) => (p.log && p.val < 0.01) ? fmtExpTrunc(p.val, 2) : fmtFixedTrunc(p.val, 2);
     document.getElementById('valX').textContent = formatOut(px) + px.unit;
     document.getElementById('valY').textContent = formatOut(py) + py.unit;
 }
@@ -488,9 +535,9 @@ function _doGalaxyGeneration(params) {
         document.getElementById('starCount').textContent = galaxyData.n_stars.toLocaleString() + ' stars';
         document.getElementById('statusTxt').textContent = 'Ready (' + galaxyData.elapsed + 's)';
         document.getElementById('timeSlider').value = timeToSlider(currentTime);
-        document.getElementById('timeLabel').textContent = currentTime.toFixed(2) + ' Gyr';
+        document.getElementById('timeLabel').textContent = fmtFixedTrunc(currentTime, 2) + ' Gyr';
 
-        if (!document.getElementById('gceWindow').classList.contains('hidden')) openWindow('gce');
+        if (!document.getElementById('gceWindow').classList.contains('hidden') && typeof initGCEChart === 'function') initGCEChart();
     }).catch(e => {
         if (requestToken !== _galaxyRequestToken) return;
         document.getElementById('statusTxt').textContent = e.message || 'Error';

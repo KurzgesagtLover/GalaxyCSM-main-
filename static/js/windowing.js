@@ -6,6 +6,7 @@ function openWindow(type) {
         if (selectedStarId >= 0) loadHR(selectedStarId);
     } else if (type === 'gce') {
         document.getElementById('gceWindow').classList.remove('hidden');
+        if (typeof initGCEChart === 'function') initGCEChart();
     } else if (type === 'genOpts') {
         document.getElementById('genOptsOverlay').classList.toggle('hidden');
     }

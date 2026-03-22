@@ -5,11 +5,7 @@ function updateHRMarker() {
     const hrPlot = document.getElementById('hrPlot');
     if (!hrPlot || !hrPlot.data) return;
     const age = Math.max(currentTime - cachedStarData.birth_time, 0);
-    let best = 0;
-    for (let i = 0; i < cachedTrack.length; i++) {
-        if (cachedTrack[i].age <= age) best = i;
-    }
-    const pt = cachedTrack[best];
+    const pt = sampleTrackAtAge(cachedTrack, age);
     if (!pt || pt.T_eff <= 100 || pt.luminosity <= 1e-7) return;
     // Find the marker trace (the one with star-diamond symbol)
     const markerIdx = hrPlot.data.findIndex(t => t.marker && t.marker.symbol === 'star-diamond');
@@ -49,12 +45,11 @@ function plotHR(data) {
     const logL = tr.map(p => Math.log10(Math.max(p.luminosity, 1e-7)));
     const phases = tr.map(p => p.phase);
     const colors = tr.map(p => p.color);
-    const labels = tr.map(p => `${p.phase_kr} (${p.age.toFixed(3)} Gyr)\nT=${p.T_eff}K L=${p.luminosity.toExponential(2)}`);
+    const labels = tr.map(p => `${p.phase_kr} (${fmtFixedTrunc(p.age, 3)} Gyr)\nT=${fmtAutoSci(p.T_eff, { fixed: 1, exp: 3, large: 1e4 })}K L=${fmtExpTrunc(p.luminosity, 2)}`);
 
     // Current position
     const age = currentTime - data.birth;
-    let curIdx = 0;
-    for (let i = 0; i < tr.length; i++) { if (tr[i].age <= age) curIdx = i; }
+    const curPt = sampleTrackAtAge(tr, age) || tr[0];
 
     // Phase-colored segments
     const phaseColors = {
@@ -83,14 +78,14 @@ function plotHR(data) {
 
     // Current position marker
     traces.push({
-        x: [logT[curIdx]], y: [logL[curIdx]], mode: 'markers+text',
+        x: [Math.log10(curPt.T_eff)], y: [Math.log10(Math.max(curPt.luminosity, 1e-7))], mode: 'markers+text',
         marker: {
-            size: 14, color: colors[curIdx], line: { width: 2, color: '#fff' },
+            size: 14, color: curPt.color, line: { width: 2, color: '#fff' },
             symbol: 'star-diamond'
         },
-        text: [tr[curIdx].phase_kr], textposition: 'top right',
+        text: [curPt.phase_kr], textposition: 'top right',
         textfont: { color: '#fff', size: 11 },
-        name: `현재: ${tr[curIdx].phase_kr}`, showlegend: true,
+        name: `현재: ${curPt.phase_kr}`, showlegend: true,
     });
 
     // H-R diagram background image

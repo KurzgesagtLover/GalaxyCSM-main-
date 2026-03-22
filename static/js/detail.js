@@ -2,26 +2,59 @@
 let _detailRequestToken = 0;
 let _detailAbortController = null;
 
+function _interpLinear(a, b, t) {
+    return a + (b - a) * t;
+}
+
+function _interpPositive(a, b, t) {
+    if (!(a > 0) || !(b > 0)) return _interpLinear(a, b, t);
+    return Math.exp(_interpLinear(Math.log(a), Math.log(b), t));
+}
+
+function sampleTrackAtAge(track, age) {
+    if (!track || track.length === 0) return null;
+    if (track.length === 1 || age <= track[0].age) return track[0];
+    const last = track[track.length - 1];
+    if (age >= last.age) return last;
+
+    let hi = 1;
+    while (hi < track.length && track[hi].age < age) hi++;
+    const lo = track[hi - 1];
+    const up = track[hi];
+    const span = Math.max(up.age - lo.age, 1e-12);
+    const t = Math.max(0, Math.min(1, (age - lo.age) / span));
+    const phaseSource = t < 0.5 ? lo : up;
+
+    return {
+        ...phaseSource,
+        age,
+        T_eff: _interpPositive(lo.T_eff || 0, up.T_eff || 0, t),
+        luminosity: _interpPositive(lo.luminosity || 0, up.luminosity || 0, t),
+        radius: _interpPositive(lo.radius || 0, up.radius || 0, t),
+        abs_mag: (lo.abs_mag !== undefined && up.abs_mag !== undefined)
+            ? _interpLinear(lo.abs_mag, up.abs_mag, t)
+            : phaseSource.abs_mag,
+        log_g: (lo.log_g !== undefined && up.log_g !== undefined)
+            ? _interpLinear(lo.log_g, up.log_g, t)
+            : phaseSource.log_g,
+        flare_activity: (lo.flare_activity !== undefined && up.flare_activity !== undefined)
+            ? _interpLinear(lo.flare_activity, up.flare_activity, t)
+            : phaseSource.flare_activity,
+    };
+}
+
 function updatePanelFromCache() {
     if (!cachedStarData) return;
     const d = cachedStarData;
     const age = Math.max(currentTime - d.birth_time, 0);
-    // Find closest track point
-    let evo = null;
-    if (cachedTrack && cachedTrack.length > 0) {
-        let best = 0;
-        for (let i = 0; i < cachedTrack.length; i++) {
-            if (cachedTrack[i].age <= age) best = i;
-        }
-        evo = cachedTrack[best];
-    }
+    const evo = sampleTrackAtAge(cachedTrack, age);
     // Update DOM elements directly
     const el = document.getElementById('detailContent');
     if (!el) return;
     const upd = (id, val) => { const e = el.querySelector(`[data-field="${id}"]`); if (e) e.textContent = val; };
-    upd('age', age.toFixed(3) + ' Gyr');
-    upd('remaining_ms', Math.max(d.ms_lifetime - age, 0).toFixed(4) + ' Gyr');
-    upd('elapsed_pct', d.ms_lifetime > 0 ? (age / d.ms_lifetime * 100).toFixed(1) + '%' : '?');
+    upd('age', fmtFixedTrunc(age, 3) + ' Gyr');
+    upd('remaining_ms', fmtFixedTrunc(Math.max(d.ms_lifetime - age, 0), 4) + ' Gyr');
+    upd('elapsed_pct', d.ms_lifetime > 0 ? fmtPercentTrunc(age / d.ms_lifetime, 1) : '?');
     if (evo) {
         // Flare calculation
         let displayLuminosity = evo.luminosity || 0;
@@ -38,22 +71,22 @@ function updatePanelFromCache() {
         }
 
         upd('phase', evo.phase_kr || evo.phase);
-        upd('T_eff', (evo.T_eff || 0).toLocaleString() + ' K');
+        upd('T_eff', fmtAutoSci(evo.T_eff || 0, { fixed: 1, exp: 3, large: 1e4 }) + ' K');
 
         // Show flare tag if active
         const lSp = el.querySelector(`[data-field="luminosity"]`);
         if (lSp) {
             if (isFlaring) {
-                lSp.innerHTML = `<span style="color:#f44;font-weight:bold">🔥 ${displayLuminosity.toExponential(3)} L☉</span>`;
+                lSp.innerHTML = `<span style="color:#f44;font-weight:bold">🔥 ${fmtExpTrunc(displayLuminosity, 3)} L☉</span>`;
             } else {
-                lSp.textContent = displayLuminosity.toExponential(3) + ' L☉';
+                lSp.textContent = fmtExpTrunc(displayLuminosity, 3) + ' L☉';
             }
         }
 
-        upd('radius', (evo.radius || 0).toFixed(4) + ' R☉');
+        upd('radius', fmtAutoSci(evo.radius || 0, { fixed: 4, exp: 3, small: 1e-2, large: 1e3 }) + ' R☉');
         upd('spectral', evo.spectral_class || '?');
-        upd('abs_mag', evo.abs_mag !== undefined ? evo.abs_mag : '?');
-        upd('log_g', evo.log_g !== undefined ? evo.log_g : '?');
+        upd('abs_mag', evo.abs_mag !== undefined ? fmtFixedTrunc(evo.abs_mag, 3) : '?');
+        upd('log_g', evo.log_g !== undefined ? fmtFixedTrunc(evo.log_g, 3) : '?');
         upd('star_name', (evo.spectral_class || d.star_type) + ' #' + d.star_id);
         // Update phase tag
         const tag = el.querySelector('.phase-tag');
@@ -151,32 +184,32 @@ function renderStarDetail(d, el) {
 
   <div class="section"><div class="section-title">항성 기본 정보</div>
     <div class="info-grid">
-      <div class="info-row"><span class="lbl">질량</span><span class="val">${d.star_mass} M☉</span></div>
+      <div class="info-row"><span class="lbl">질량</span><span class="val">${fmtAutoSci(d.star_mass, { fixed: 4, exp: 3, small: 1e-2, large: 1e3 })} M☉</span></div>
       <div class="info-row"><span class="lbl">스펙트럼</span><span class="val" data-field="spectral">${evo.spectral_class || '?'}</span></div>
-      <div class="info-row"><span class="lbl">나이</span><span class="val" data-field="age">${d.age_gyr.toFixed(3)} Gyr</span></div>
-      <div class="info-row"><span class="lbl">탄생</span><span class="val">${d.birth_time.toFixed(3)} Gyr</span></div>
-      <div class="info-row"><span class="lbl">금속성 Z</span><span class="val">${d.metallicity.toFixed(5)}</span></div>
-      <div class="info-row"><span class="lbl">위치</span><span class="val">${d.radius_kpc} kpc</span></div>
+      <div class="info-row"><span class="lbl">나이</span><span class="val" data-field="age">${fmtFixedTrunc(d.age_gyr, 3)} Gyr</span></div>
+      <div class="info-row"><span class="lbl">탄생</span><span class="val">${fmtFixedTrunc(d.birth_time, 3)} Gyr</span></div>
+      <div class="info-row"><span class="lbl">금속성 Z</span><span class="val">${fmtExpTrunc(d.metallicity, 3)}</span></div>
+      <div class="info-row"><span class="lbl">위치</span><span class="val">${fmtFixedTrunc(d.radius_kpc, 3)} kpc</span></div>
     </div>
   </div>
 
   <div class="section"><div class="section-title">현재 물리량</div>
     <div class="info-grid">
-      <div class="info-row"><span class="lbl">유효온도 T<sub>eff</sub></span><span class="val" data-field="T_eff">${evo.T_eff?.toLocaleString() || '?'} K</span></div>
-      <div class="info-row"><span class="lbl">광도 L</span><span class="val" data-field="luminosity">${evo.luminosity?.toExponential(3) || '?'} L☉</span></div>
-      <div class="info-row"><span class="lbl">반경 R</span><span class="val" data-field="radius">${evo.radius?.toFixed(4) || '?'} R☉</span></div>
-      <div class="info-row"><span class="lbl">절대등급 M<sub>V</sub></span><span class="val" data-field="abs_mag">${evo.abs_mag ?? '?'}</span></div>
-      <div class="info-row"><span class="lbl">표면중력 log g</span><span class="val" data-field="log_g">${evo.log_g ?? '?'}</span></div>
+      <div class="info-row"><span class="lbl">유효온도 T<sub>eff</sub></span><span class="val" data-field="T_eff">${evo.T_eff != null ? fmtAutoSci(evo.T_eff, { fixed: 1, exp: 3, large: 1e4 }) : '?'} K</span></div>
+      <div class="info-row"><span class="lbl">광도 L</span><span class="val" data-field="luminosity">${evo.luminosity != null ? fmtExpTrunc(evo.luminosity, 3) : '?'} L☉</span></div>
+      <div class="info-row"><span class="lbl">반경 R</span><span class="val" data-field="radius">${evo.radius != null ? fmtAutoSci(evo.radius, { fixed: 4, exp: 3, small: 1e-2, large: 1e3 }) : '?'} R☉</span></div>
+      <div class="info-row"><span class="lbl">절대등급 M<sub>V</sub></span><span class="val" data-field="abs_mag">${evo.abs_mag != null ? fmtFixedTrunc(evo.abs_mag, 3) : '?'}</span></div>
+      <div class="info-row"><span class="lbl">표면중력 log g</span><span class="val" data-field="log_g">${evo.log_g != null ? fmtFixedTrunc(evo.log_g, 3) : '?'}</span></div>
       <div class="info-row"><span class="lbl">현재 위상</span><span class="val" data-field="phase">${evo.phase_kr || evo.phase}</span></div>
     </div>
   </div>
 
   <div class="section"><div class="section-title">진화 타임라인</div>
     <div class="info-grid">
-      <div class="info-row"><span class="lbl">주계열 수명</span><span class="val">${d.ms_lifetime?.toFixed(4) || '?'} Gyr</span></div>
-      <div class="info-row"><span class="lbl">주계열 잔존</span><span class="val" data-field="remaining_ms">${d.remaining_ms?.toFixed(4) || '?'} Gyr</span></div>
-      <div class="info-row"><span class="lbl">총 수명</span><span class="val">${d.total_lifetime?.toFixed(4) || '?'} Gyr</span></div>
-      <div class="info-row"><span class="lbl">경과 비율</span><span class="val" data-field="elapsed_pct">${d.ms_lifetime > 0 ? (d.age_gyr / d.ms_lifetime * 100).toFixed(1) + '%' : '?'}</span></div>
+      <div class="info-row"><span class="lbl">주계열 수명</span><span class="val">${d.ms_lifetime != null ? fmtFixedTrunc(d.ms_lifetime, 4) : '?'} Gyr</span></div>
+      <div class="info-row"><span class="lbl">주계열 잔존</span><span class="val" data-field="remaining_ms">${d.remaining_ms != null ? fmtFixedTrunc(d.remaining_ms, 4) : '?'} Gyr</span></div>
+      <div class="info-row"><span class="lbl">총 수명</span><span class="val">${d.total_lifetime != null ? fmtFixedTrunc(d.total_lifetime, 4) : '?'} Gyr</span></div>
+      <div class="info-row"><span class="lbl">경과 비율</span><span class="val" data-field="elapsed_pct">${d.ms_lifetime > 0 ? fmtPercentTrunc(d.age_gyr / d.ms_lifetime, 1) : '?'}</span></div>
     </div>
     ${_renderEvolutionBar(d, evo)}
     <button class="hdr-btn" style="margin-top:8px;width:100%" onclick="loadHR(${d.star_id})">
@@ -190,7 +223,7 @@ function renderStarDetail(d, el) {
       <div style="display:flex;flex-wrap:wrap;gap:2px">`;
         for (const [el, v] of Object.entries(d.stellar_composition)) {
             if (v < 1e-10) continue;
-            h += `<div class="comp-chip"><span class="comp-el">${el}</span><span class="comp-val">${v.toExponential(2)}</span></div>`;
+            h += `<div class="comp-chip"><span class="comp-el">${el}</span><span class="comp-val">${fmtExpTrunc(v, 2)}</span></div>`;
         }
         h += '</div></div>';
     }

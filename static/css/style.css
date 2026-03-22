@@ -938,3 +938,116 @@ small {
     padding-bottom: 6px;
     border-bottom: 1px solid var(--brd)
 }
+
+/* ── GCE Chart Window ────────────────────────────── */
+.gce-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, .4);
+    border-bottom: 1px solid var(--brd);
+    flex-shrink: 0
+}
+
+.gce-tabs {
+    display: flex;
+    gap: 2px
+}
+
+.gce-tab {
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--dim);
+    font-size: 10px;
+    font-family: var(--font);
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    white-space: nowrap
+}
+
+.gce-tab:hover {
+    color: var(--txt);
+    background: rgba(255, 255, 255, .05)
+}
+
+.gce-tab.active {
+    background: rgba(108, 180, 238, .10);
+    border-color: rgba(108, 180, 238, .30);
+    color: var(--acc)
+}
+
+.gce-zone-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0
+}
+
+.gce-zone-label {
+    font-size: 10px;
+    color: var(--dim);
+    white-space: nowrap
+}
+
+.gce-zone-select {
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, .35);
+    border: 1px solid var(--brd);
+    color: var(--txt);
+    font-family: var(--mono);
+    font-size: 10px;
+    outline: none
+}
+
+.gce-zone-select:focus {
+    border-color: var(--acc)
+}
+
+.gce-zone-select option {
+    background: #1a1a1a;
+    color: var(--txt)
+}
+
+.gce-element-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 5px 12px;
+    background: rgba(0, 0, 0, .25);
+    border-bottom: 1px solid var(--brd);
+    flex-shrink: 0
+}
+
+.gce-el-toggle {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    transition: .15s;
+    user-select: none
+}
+
+.gce-el-toggle .el-dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0
+}
+
+.gce-el-toggle.off {
+    opacity: .3
+}
+
+.gce-el-toggle.on {
+    border-color: rgba(255, 255, 255, .12);
+    background: rgba(255, 255, 255, .05)
+}

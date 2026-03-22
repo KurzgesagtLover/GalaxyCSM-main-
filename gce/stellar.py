@@ -18,7 +18,7 @@ from .stellar_properties import PHASE_KR, SPECTRAL, _ms_lifetime, _ms_state, _sp
 from .stellar_tracks import stellar_evolution
 
 
-def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02, stellar_model=None):
+def hr_track(mass, age_max=None, n_points=1200, metallicity_z=0.02, stellar_model=None):
     """Generate detailed H-R evolution track."""
     t_ms = _ms_lifetime(mass, metallicity_z=metallicity_z)
     total = age_max if age_max is not None else t_ms * 1.5 + 1
@@ -26,17 +26,19 @@ def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02, stellar_model
     total = min(total, DEFAULT_VIEW_T_MAX)
 
     ages = set()
+    base_points = max(240, min(int(n_points * 0.45), 640))
+    ages.update(np.linspace(0, total, base_points))
     pre_end = min(0.002, t_ms * 0.05)
-    ages.update(np.linspace(0, pre_end, 15))
-    ages.update(np.linspace(pre_end, t_ms * 0.5, 25))
-    ages.update(np.linspace(t_ms * 0.5, t_ms * 0.85, 25))
-    ages.update(np.linspace(t_ms * 0.85, t_ms * 0.95, 20))
-    ages.update(np.linspace(t_ms * 0.95, t_ms * 1.05, 30))
-    ages.update(np.linspace(t_ms * 1.05, t_ms * 1.15, 30))
-    ages.update(np.linspace(t_ms * 1.15, t_ms * 1.25, 25))
-    ages.update(np.linspace(t_ms * 1.25, t_ms * 1.35, 20))
+    ages.update(np.linspace(0, pre_end, 30))
+    ages.update(np.linspace(pre_end, t_ms * 0.5, 80))
+    ages.update(np.linspace(t_ms * 0.5, t_ms * 0.85, 100))
+    ages.update(np.linspace(t_ms * 0.85, t_ms * 0.95, 120))
+    ages.update(np.linspace(t_ms * 0.95, t_ms * 1.05, 180))
+    ages.update(np.linspace(t_ms * 1.05, t_ms * 1.15, 180))
+    ages.update(np.linspace(t_ms * 1.15, t_ms * 1.25, 140))
+    ages.update(np.linspace(t_ms * 1.25, t_ms * 1.35, 100))
     if total > t_ms * 1.35:
-        ages.update(np.linspace(t_ms * 1.35, total, 40))
+        ages.update(np.linspace(t_ms * 1.35, total, 220))
     ages = sorted(a for a in ages if 0 <= a <= total)
     if len(ages) > n_points:
         keep = np.linspace(0, len(ages) - 1, n_points, dtype=int)
@@ -50,6 +52,9 @@ def hr_track(mass, age_max=None, n_points=300, metallicity_z=0.02, stellar_model
             'T_eff': evo['T_eff'],
             'luminosity': evo['luminosity'],
             'radius': evo['radius'],
+            'abs_mag': evo['abs_mag'],
+            'log_g': evo['log_g'],
+            'flare_activity': evo['flare_activity'],
             'phase': evo['phase'],
             'phase_kr': evo['phase_kr'],
             'color': evo['color'],
