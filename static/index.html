@@ -103,7 +103,7 @@
                 <span>GCE 원소 진화</span>
                 <button class="close-btn" onclick="closePanel('gceWindow')">&times;</button>
             </div>
-            <div class="win-body" style="display:flex;flex-direction:column;gap:0;padding:0;max-height:calc(100% - 36px)">
+            <div class="win-body" style="display:flex;flex-direction:column;gap:0;padding:0;flex:1 1 auto;min-height:0;overflow:hidden">
                 <!-- Toolbar -->
                 <div id="gceToolbar" class="gce-toolbar">
                     <div class="gce-tabs" id="gceTabs">
@@ -121,7 +121,7 @@
                 <!-- Element toggles -->
                 <div id="gceElementBar" class="gce-element-bar"></div>
                 <!-- Chart -->
-                <div id="gcePlot" style="flex:1;min-height:0"></div>
+                <div id="gcePlot" style="flex:1 1 auto;min-height:320px;width:100%"></div>
             </div>
         </div>
 

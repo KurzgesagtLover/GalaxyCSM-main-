@@ -135,6 +135,26 @@ python test_precise_tracks.py
 python benchmark_stellar_tracks.py
 ```
 
+### 전체 물리 검증 파이프라인
+
+공개 기준값 기반으로 은하 화학 진화, 태양 유사 항성, 지구 유사 행성 시나리오를 한 번에 검증하려면 아래 명령을 실행합니다.
+
+```powershell
+python -m validation.run_validation
+```
+
+리포트를 파일로 남기려면 출력 디렉터리를 지정할 수 있습니다.
+
+```powershell
+python -m validation.run_validation --output-dir validation\reports
+```
+
+자동 테스트에서는 아래처럼 구조 검증만 빠르게 확인할 수 있습니다.
+
+```powershell
+python -m unittest test_validation_pipeline.py
+```
+
 참고:
 
 - 일부 파일은 자동 수집형 테스트라기보다 진단/검증 스크립트에 가깝습니다.

@@ -16,6 +16,7 @@ const GCE_DEFAULT_ELEMENTS = ['Fe', 'O', 'C', 'N', 'Mg', 'Eu', 'Ba', 'Si'];
 let _gceMode = 'xh';
 let _gceActiveElements = new Set(GCE_DEFAULT_ELEMENTS);
 let _gceInitialised = false;
+let _gceEventsBound = false;
 
 const _GCE_PLOTLY_LAYOUT_BASE = {
     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -36,15 +37,39 @@ const _GCE_PLOTLY_LAYOUT_BASE = {
 
 /* ---- Initialisation ---- */
 
+function _scheduleGCEPlotRender(attempt = 0) {
+    const plotEl = document.getElementById('gcePlot');
+    if (!plotEl || typeof Plotly === 'undefined') return;
+
+    const hasSize = plotEl.clientWidth > 0 && plotEl.clientHeight > 0;
+    if (!hasSize) {
+        if (attempt >= 12) return;
+        setTimeout(() => {
+            requestAnimationFrame(() => _scheduleGCEPlotRender(attempt + 1));
+        }, 50);
+        return;
+    }
+
+    plotGCE(_gceMode);
+    if (Plotly?.Plots?.resize) Plotly.Plots.resize(plotEl);
+}
+
 function initGCEChart() {
-    if (!galaxyData?.gce) return;
+    if (!galaxyData || !galaxyData.gce || typeof Plotly === 'undefined') return;
+    const plotEl = document.getElementById('gcePlot');
+    if (!plotEl) return;
     const gce = galaxyData.gce;
 
     _buildZoneSelect(gce.radius);
     _buildElementToggles(gce.elements);
-    _bindGCEEvents();
+    if (!_gceEventsBound) {
+        _bindGCEEvents();
+        _gceEventsBound = true;
+    }
     _gceInitialised = true;
-    plotGCE(_gceMode);
+
+    // Wait until the floating window has a measurable chart area.
+    requestAnimationFrame(() => _scheduleGCEPlotRender());
 }
 
 function _buildZoneSelect(radii) {
@@ -153,7 +178,7 @@ function _getZoneData(data2d, zoneIdx) {
 /* ---- Plotting ---- */
 
 function plotGCE(mode) {
-    if (!galaxyData?.gce) return;
+    if (!galaxyData?.gce || typeof Plotly === 'undefined') return;
     const gce = galaxyData.gce;
     const zoneIdx = _resolveZoneIdx(gce);
 

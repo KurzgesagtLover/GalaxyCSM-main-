@@ -1,0 +1,243 @@
+{
+  "metadata": {
+    "name": "public_full_stack",
+    "label": "Public Full-Stack Physics Benchmarks",
+    "version": 1,
+    "description": "Milky Way-like GCE, solar analog stellar evolution, and Earth analog planetary benchmarks derived from public reference values."
+  },
+  "scenarios": {
+    "galaxy": {
+      "label": "Milky Way-like disk",
+      "params": {
+        "t_max": 13.8,
+        "r_min": 0.5,
+        "r_max": 15.5,
+        "dr": 1.0
+      },
+      "solar_radius_kpc": 8.0,
+      "slope_window_kpc": [
+        4.0,
+        12.0
+      ],
+      "notes": [
+        "The solver operates on 1 kpc annuli, so the nearest annulus to 8 kpc is used for the solar neighborhood comparison."
+      ]
+    },
+    "stellar": {
+      "label": "Solar analog",
+      "mass_msun": 1.0,
+      "age_gyr": 4.57,
+      "metallicity_z": 0.0134,
+      "stellar_model": "auto"
+    },
+    "planet": {
+      "label": "Earth analog",
+      "mass_earth": 1.0,
+      "ptype": "rocky",
+      "semi_major_au": 1.0,
+      "star_mass_msun": 1.0,
+      "stellar_luminosity_lsun": 1.0,
+      "star_teff_K": 5778.0,
+      "rotation_period_hr": 24.0,
+      "axial_tilt_deg": 23.4,
+      "ecc": 0.0167,
+      "age_gyr": 4.57,
+      "oxidation_iw": -2.0,
+      "diff_progress": 1.0,
+      "bulk_comp": {
+        "O": 0.44,
+        "Fe": 0.32,
+        "Si": 0.21,
+        "Mg": 0.15,
+        "Al": 0.02,
+        "C": 0.002,
+        "N": 0.0002,
+        "S": 0.02,
+        "P": 0.0006
+      },
+      "late_veneer": {
+        "class": "LV3",
+        "label": "wet veneer",
+        "score": 1.0,
+        "lv_mass_frac": 0.015,
+        "water_frac": 0.01,
+        "hse_enrichment": 2.0,
+        "carbonaceous_frac": 0.4,
+        "volatile_enrichment": 2.5,
+        "tail_myr": 400.0,
+        "scores": {}
+      }
+    }
+  },
+  "metrics": [
+    {
+      "id": "galaxy.solar_feh",
+      "domain": "galaxy",
+      "key": "solar_feh",
+      "label": "Solar neighborhood [Fe/H]",
+      "unit": "dex",
+      "observed": 0.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.15
+      },
+      "source": "Solar neighborhood calibration target near the Sun."
+    },
+    {
+      "id": "galaxy.radial_feh_slope",
+      "domain": "galaxy",
+      "key": "radial_feh_slope",
+      "label": "Milky Way radial [Fe/H] slope",
+      "unit": "dex/kpc",
+      "observed": -0.05,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.02
+      },
+      "source": "Representative modern Milky Way disk abundance gradient from open cluster, Cepheid, and survey studies."
+    },
+    {
+      "id": "galaxy.solar_metallicity_z",
+      "domain": "galaxy",
+      "key": "solar_metallicity_z",
+      "label": "Solar-zone metallicity Z",
+      "unit": "mass fraction",
+      "observed": 0.0134,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.004
+      },
+      "source": "Solar heavy-element mass fraction from Asplund et al. 2009."
+    },
+    {
+      "id": "stellar.solar_teff",
+      "domain": "stellar",
+      "key": "solar_teff",
+      "label": "Solar effective temperature",
+      "unit": "K",
+      "observed": 5772.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 120.0
+      },
+      "source": "IAU 2015 nominal solar effective temperature."
+    },
+    {
+      "id": "stellar.solar_luminosity_lsun",
+      "domain": "stellar",
+      "key": "solar_luminosity_lsun",
+      "label": "Solar luminosity",
+      "unit": "Lsun",
+      "observed": 1.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.15
+      },
+      "source": "IAU nominal solar luminosity in solar units."
+    },
+    {
+      "id": "stellar.solar_radius_rsun",
+      "domain": "stellar",
+      "key": "solar_radius_rsun",
+      "label": "Solar radius",
+      "unit": "Rsun",
+      "observed": 1.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.08
+      },
+      "source": "IAU nominal solar radius in solar units."
+    },
+    {
+      "id": "planet.earth_insolation_w_m2",
+      "domain": "planet",
+      "key": "earth_insolation_w_m2",
+      "label": "Earth insolation",
+      "unit": "W/m^2",
+      "observed": 1361.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 20.0
+      },
+      "source": "IAU nominal total solar irradiance at 1 AU."
+    },
+    {
+      "id": "planet.earth_gravity_m_s2",
+      "domain": "planet",
+      "key": "earth_gravity_m_s2",
+      "label": "Earth surface gravity",
+      "unit": "m/s^2",
+      "observed": 9.81,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.2
+      },
+      "source": "Nominal Earth surface gravity."
+    },
+    {
+      "id": "planet.earth_escape_velocity_km_s",
+      "domain": "planet",
+      "key": "earth_escape_velocity_km_s",
+      "label": "Earth escape velocity",
+      "unit": "km/s",
+      "observed": 11.186,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.15
+      },
+      "source": "Nominal Earth escape velocity."
+    },
+    {
+      "id": "planet.earth_equilibrium_temperature_k",
+      "domain": "planet",
+      "key": "earth_equilibrium_temperature_k",
+      "label": "Earth equilibrium temperature",
+      "unit": "K",
+      "observed": 255.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 8.0
+      },
+      "source": "Canonical Earth radiative-equilibrium temperature with Bond albedo near 0.3."
+    },
+    {
+      "id": "planet.earth_surface_pressure_atm",
+      "domain": "planet",
+      "key": "earth_surface_pressure_atm",
+      "label": "Earth surface pressure",
+      "unit": "atm",
+      "observed": 1.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.25
+      },
+      "source": "Standard mean sea-level atmospheric pressure."
+    },
+    {
+      "id": "planet.earth_surface_temperature_k",
+      "domain": "planet",
+      "key": "earth_surface_temperature_k",
+      "label": "Earth mean surface temperature",
+      "unit": "K",
+      "observed": 288.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 10.0
+      },
+      "source": "Canonical modern Earth mean surface temperature."
+    },
+    {
+      "id": "planet.earth_n2_partial_pressure_atm",
+      "domain": "planet",
+      "key": "earth_n2_partial_pressure_atm",
+      "label": "Earth N2 partial pressure",
+      "unit": "atm",
+      "observed": 0.7808,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.2
+      },
+      "source": "Modern Earth dry-air nitrogen abundance."
+    }
+  ]
+}
