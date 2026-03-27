@@ -353,13 +353,13 @@ const GEN_PARAMS = [
     { id: 'infall_tau_thin', label: 'Thin disk τ (Gyr)', type: 'float', min: 1, max: 20, step: 0.5, default: 7.0 },
     { id: 'infall_sigma_thick0', label: 'Thick disk Σ₀ (M☉/pc²)', type: 'float', min: 10, max: 200, step: 5, default: 55.0 },
     { id: 'infall_sigma_thin0', label: 'Thin disk Σ₀ (M☉/pc²)', type: 'float', min: 50, max: 1000, step: 10, default: 320.0 },
-    { id: 'infall_rd', label: 'Disk scale length (kpc)', type: 'float', min: 1, max: 10, step: 0.5, default: 3.5 },
+    { id: 'infall_rd', label: 'Disk scale length (kpc)', type: 'float', min: 1, max: 10, step: 0.5, default: 2.0 },
 
     { section: '유출 (Outflow)' },
-    { id: 'outflow_eta', label: 'Mass-loading factor η', type: 'float', min: 0, max: 5, step: 0.1, default: 0.3 },
+    { id: 'outflow_eta', label: 'Mass-loading factor η', type: 'float', min: 0, max: 5, step: 0.1, default: 1.1 },
 
     { section: '원소 수율 배율' },
-    { id: 'yield_r_multiplier', label: 'r-process (NSM) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
+    { id: 'yield_r_multiplier', label: 'r-process (NSM) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.1, unit: '×' },
     { id: 'yield_s_multiplier', label: 's-process (AGB) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
     { id: 'yield_ia_multiplier', label: 'Type Ia SN 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
     { id: 'agb_frequency_multiplier', label: 'AGB 빈도 배율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.0, unit: '×' },
@@ -376,7 +376,7 @@ const GEN_PARAMS = [
     { id: 'nsm_ejecta', label: 'NSM 방출 질량 (M☉)', type: 'float', min: 0.001, max: 0.1, step: 0.001, default: 0.03 },
 
     { section: 'Collapsar / Jet-SNe' },
-    { id: 'collapsar_frac', label: 'CCSNe 중 비율', type: 'float', min: 0, max: 0.1, step: 0.005, default: 0.01 },
+    { id: 'collapsar_frac', label: 'CCSNe 중 비율', type: 'float', min: 0, max: 0.1, step: 0.001, default: 0.001 },
     { id: 'collapsar_ejecta', label: '방출 질량 (M☉)', type: 'float', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
 ];
 

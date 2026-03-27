@@ -29,6 +29,7 @@ def _run_galaxy_scenario(config: dict) -> dict:
 
     radii = np.asarray(result["radius"], dtype=float)
     feh = np.asarray(result["XH"]["Fe"], dtype=float)[:, -1]
+    euh = np.asarray(result["XH"]["Eu"], dtype=float)[:, -1]
     metallicity = np.asarray(result["metallicity"], dtype=float)[:, -1]
 
     solar_radius = float(config["solar_radius_kpc"])
@@ -40,6 +41,7 @@ def _run_galaxy_scenario(config: dict) -> dict:
     return {
         "metrics": {
             "solar_feh": float(feh[solar_idx]),
+            "solar_eu_fe": float(euh[solar_idx] - feh[solar_idx]),
             "solar_metallicity_z": float(metallicity[solar_idx]),
             "radial_feh_slope": radial_slope,
         },
@@ -48,6 +50,7 @@ def _run_galaxy_scenario(config: dict) -> dict:
             "slope_window_kpc": [slope_lo, slope_hi],
             "radii_kpc": radii.tolist(),
             "final_feh_profile": [float(value) for value in feh.tolist()],
+            "final_euh_profile": [float(value) for value in euh.tolist()],
         },
     }
 
@@ -113,6 +116,12 @@ def _run_planet_scenario(config: dict) -> dict:
         orbital_period_days=float(physical["orbital_period_days"]),
         tidally_locked=bool(physical["tidally_locked"]),
         tidal_heating_TW=float(physical["tidal_heating_TW"]),
+        surface_relative_humidity=float(config.get("surface_relative_humidity", 0.65)),
+        biotic_o2_atm=(
+            None
+            if config.get("biotic_o2_atm") is None
+            else float(config["biotic_o2_atm"])
+        ),
     )
 
     return {

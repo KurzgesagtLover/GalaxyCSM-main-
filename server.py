@@ -245,5 +245,16 @@ def api_evolution(star_id):
         'track': track
     })
 
+@app.route('/api/validation')
+def api_validation():
+    """Run the full validation pipeline (internal benchmarks + observational)."""
+    try:
+        from validation.run_observational_validation import build_report
+        report = build_report()
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+    return jsonify(report)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

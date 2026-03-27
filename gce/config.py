@@ -59,6 +59,9 @@ def _compute_solar_mass_fractions():
 
 SOLAR_X = _compute_solar_mass_fractions()
 Z_SUN = 1.0 - SOLAR_X[EL_IDX['H']] - SOLAR_X[EL_IDX['He']]
+Z_SUN_TRACKED = Z_SUN
+Z_SUN_TOTAL = 0.0134
+TRACKED_Z_TO_TOTAL_SCALE = Z_SUN_TOTAL / max(Z_SUN_TRACKED, 1e-12)
 
 DEFAULT_GCE_T_MAX = 20.0
 DEFAULT_VIEW_T_MAX = 10000.0
@@ -91,9 +94,14 @@ DEFAULT_PARAMS = {
     'infall_tau_thin': 7.0,          # Gyr
     'infall_sigma_thick0': 55.0,      # M☉/pc² normalization
     'infall_sigma_thin0': 320.0,
-    'infall_rd': 3.5,                # disk scale length kpc
+    'infall_rd': 2.0,                # disk scale length kpc
     # Outflow
-    'outflow_eta': 0.3,              # mass-loading factor
+    'outflow_eta': 1.1,              # mass-loading factor
+    # r-process calibration
+    'yield_r_multiplier': 1.1,       # keeps solar-zone [Eu/Fe] near the solar anchor
+    'yield_s_multiplier': 1.0,
+    'yield_ia_multiplier': 1.0,
+    'agb_frequency_multiplier': 1.0,
     # Type Ia SN
     'ia_N_per_Msun': 2.0e-3,
     'ia_t_min': 0.15,                # Gyr — sharper knee
@@ -104,7 +112,9 @@ DEFAULT_PARAMS = {
     'nsm_dtd_slope': -1.0,
     'nsm_ejecta': 0.03,              # M☉ per event
     # Collapsar / Jet-SNe (r-process)
-    'collapsar_frac': 0.01,          # fraction of CCSNe that are collapsars
+    # Keep collapsars sub-dominant by default so Eu is not overproduced once
+    # NSM enrichment is also enabled in the same run.
+    'collapsar_frac': 0.001,         # fraction of CCSNe that are collapsars
     'collapsar_ejecta': 0.05,        # M☉ r-process ejecta per event
     # IMF
     'imf': 'kroupa',

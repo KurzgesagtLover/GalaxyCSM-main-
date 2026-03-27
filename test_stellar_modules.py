@@ -1,3 +1,4 @@
+from gce.config import Z_SUN
 from gce.stellar import (
     _overview_alive_until,
     _overview_phase_bucket,
@@ -55,6 +56,19 @@ def test_public_reexport_and_tracks():
     print(f"  20Msun phase={massive_state['phase']}")
 
 
+def test_solar_anchor_state():
+    state = public_stellar_evolution(1.0, 4.57, metallicity_z=Z_SUN, model='auto')
+    assert abs(state['T_eff'] - 5772.0) < 120.0
+    assert abs(state['luminosity'] - 1.0) < 0.15
+    assert abs(state['radius'] - 1.0) < 0.08
+
+    print('solar anchor calibration: OK')
+    print(
+        f"  Teff={state['T_eff']}K L={state['luminosity']:.3f} "
+        f"R={state['radius']:.3f}Rsun"
+    )
+
+
 def test_galaxy_overview_uses_current_phase_metadata():
     assert _overview_phase_bucket('RGB') == 'giant'
     assert _overview_phase_bucket('NS') == 'dead'
@@ -81,5 +95,6 @@ if __name__ == '__main__':
     test_properties_module()
     test_remnants_module()
     test_public_reexport_and_tracks()
+    test_solar_anchor_state()
     test_galaxy_overview_uses_current_phase_metadata()
     print('stellar module checks passed')

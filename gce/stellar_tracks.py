@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from .config import Z_SUN
 from .stellar_track_provider import get_precise_track_state, resolve_stellar_model
 from .stellar_properties import (
     PHASE_KR,
@@ -55,6 +56,45 @@ def _format_raw_state(age_gyr, initial_mass, raw_state):
         max_radius_rsun=raw_state.get('max_radius_rsun'),
         flare_activity=raw_state.get('flare_activity', 0),
     )
+
+
+def _apply_solar_ms_calibration(state, mass, age_gyr, metallicity_z):
+    """Nudge solar-like MS stars toward the present-day solar anchor.
+
+    The bundled "precise" demo pack was generated from an older heuristic
+    baseline and tends to leave 1 Msun stars slightly too hot and bright around
+    the Sun's current age. Apply a narrow correction only for near-solar,
+    main-sequence stars so the public API stays anchored around the observed Sun
+    without affecting the broader grid.
+    """
+    if state.get('phase') != 'MS':
+        return state
+
+    z = float(np.clip(metallicity_z, 1e-6, 0.06))
+    t_ms = _ms_lifetime(mass, metallicity_z=z)
+    frac = np.clip(age_gyr / max(t_ms, 1e-9), 0.0, 1.0)
+    mass_weight = float(np.exp(-((mass - 1.0) / 0.18) ** 2))
+    z_weight = float(np.exp(-(np.log10(z / Z_SUN) / 0.35) ** 2))
+    age_weight = float(np.exp(-((frac - 0.45) / 0.28) ** 2))
+    weight = mass_weight * z_weight * age_weight
+    if weight < 1e-3:
+        return state
+
+    corrected = dict(state)
+    luminosity = float(state['luminosity']) * (1.0 - 0.22 * weight)
+    radius = float(state['radius']) * (1.0 - 0.055 * weight)
+    temperature = float(state['T_eff']) * (1.0 - 0.04 * weight)
+
+    corrected['luminosity'] = round(luminosity, 6)
+    corrected['radius'] = round(radius, 5)
+    corrected['T_eff'] = round(temperature, 2) if temperature < 100 else int(temperature)
+    corrected['color'] = _temp_to_color(temperature)
+    corrected['spectral_class'] = _spectral_class(temperature, luminosity, corrected['phase'])
+    current_mass = float(corrected.get('current_mass', mass))
+    corrected['log_g'] = round(np.log10(max(current_mass / radius**2 * 274, 0.01)), 2)
+    corrected['abs_mag'] = round(-2.5 * np.log10(max(luminosity, 1e-7)) + 4.83, 2)
+    corrected['max_radius_au'] = round(max(float(corrected.get('max_radius_au', 0.0)), radius * 0.00465), 5)
+    return corrected
 
 
 def _wd_mass_from_initial(initial_mass):
@@ -348,8 +388,18 @@ def stellar_evolution(mass, age_gyr, metallicity_z=0.02, model=None):
     if resolved_model in ('auto', 'precise'):
         raw_state = get_precise_track_state(mass, age_gyr, metallicity_z)
         if raw_state is not None:
-            return _format_raw_state(age_gyr, mass, raw_state)
-    return _heuristic_stellar_evolution(mass, age_gyr, metallicity_z=metallicity_z)
+            return _apply_solar_ms_calibration(
+                _format_raw_state(age_gyr, mass, raw_state),
+                mass,
+                age_gyr,
+                metallicity_z,
+            )
+    return _apply_solar_ms_calibration(
+        _heuristic_stellar_evolution(mass, age_gyr, metallicity_z=metallicity_z),
+        mass,
+        age_gyr,
+        metallicity_z,
+    )
 
 
 __all__ = ['stellar_evolution']

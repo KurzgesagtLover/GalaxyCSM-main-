@@ -147,7 +147,7 @@ def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
     bins = rng.choice(nr * nt, size=n_stars, p=probs)
     ir_arr, it_arr = bins // nt, bins % nt
     births = t_grid[it_arr]
-    metallicity_grid = np.array(result['metallicity'])
+    metallicity_grid = np.array(result.get('metallicity_tracked', result['metallicity']))
     birth_metallicity = metallicity_grid[ir_arr, it_arr]
     current_time = float(t_grid[-1])
 

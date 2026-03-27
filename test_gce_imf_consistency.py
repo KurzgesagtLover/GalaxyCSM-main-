@@ -141,6 +141,26 @@ def check_agb_yield_surface():
     print('smooth AGB yield surface: OK')
 
 
+def check_rprocess_solar_calibration():
+    solver = GCESolver({'t_max': 13.8, 'r_min': 4.5, 'r_max': 11.5, 'dr': 1.0})
+    result = solver.solve()
+    radii = np.array(result['radius'], dtype=float)
+    solar_idx = int(np.argmin(np.abs(radii - 8.0)))
+    eu_h = float(np.array(result['XH']['Eu'], dtype=float)[solar_idx, -1])
+    fe_h = float(np.array(result['XH']['Fe'], dtype=float)[solar_idx, -1])
+    solar_z = float(np.array(result['metallicity'], dtype=float)[solar_idx, -1])
+    eu_fe = eu_h - fe_h
+    if abs(eu_fe) > 0.15:
+        raise AssertionError(f'Solar-zone [Eu/Fe] is overproduced: got {eu_fe:.3f}')
+    if eu_h > 0.30:
+        raise AssertionError(f'Solar-zone [Eu/H] is implausibly high: got {eu_h:.3f}')
+    if abs(fe_h) > 0.15:
+        raise AssertionError(f'Solar-zone [Fe/H] is overproduced: got {fe_h:.3f}')
+    if abs(solar_z - 0.0134) > 0.004:
+        raise AssertionError(f'Solar-zone metallicity Z is off: got {solar_z:.4f}')
+    print('r-process solar calibration: OK')
+
+
 if __name__ == '__main__':
     check_kroupa_sampler()
     check_solver_imf_stats()
@@ -151,4 +171,5 @@ if __name__ == '__main__':
     check_hr_track_point_cap()
     check_agb_source_state()
     check_agb_yield_surface()
+    check_rprocess_solar_calibration()
     print('GCE/IMF consistency checks passed')

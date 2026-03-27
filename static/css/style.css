@@ -1066,3 +1066,378 @@ small {
     border-color: rgba(255, 255, 255, .12);
     background: rgba(255, 255, 255, .05)
 }
+
+/* ── Validation Window ──────────────────────────────── */
+.hdr-btn-val {
+    background: rgba(74, 222, 128, .06);
+    border-color: rgba(74, 222, 128, .25);
+    color: var(--ok)
+}
+
+.hdr-btn-val:hover {
+    border-color: var(--ok);
+    box-shadow: 0 0 10px rgba(74, 222, 128, .2)
+}
+
+#validationWindow:not(.hidden) {
+    display: flex;
+    flex-direction: column
+}
+
+#validationWindow .win-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    padding: 0
+}
+
+.val-body {
+    display: flex;
+    flex-direction: column
+}
+
+.val-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--dim)
+}
+
+.val-placeholder-icon {
+    font-size: 32px
+}
+
+.val-placeholder .val-sub {
+    font-size: 11px;
+    color: var(--dim)
+}
+
+.val-spinner {
+    width: 28px;
+    height: 28px;
+    margin-top: 8px;
+    border: 2px solid var(--brd);
+    border-top-color: var(--acc);
+    border-radius: 50%;
+    animation: spin .7s linear infinite
+}
+
+/* Tabs */
+.vtab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--brd);
+    background: rgba(0, 0, 0, .4);
+    padding: 0 12px;
+    flex-shrink: 0
+}
+
+.vtab-btn {
+    padding: 9px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    font-size: 11px;
+    font-family: var(--font);
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    letter-spacing: .2px
+}
+
+.vtab-btn:hover {
+    color: var(--txt);
+    background: rgba(255, 255, 255, .03)
+}
+
+.vtab-btn.active {
+    color: var(--acc);
+    border-bottom-color: var(--acc)
+}
+
+.vtab-panel {
+    padding: 16px;
+    animation: fadeIn .15s ease
+}
+
+.vtab-panel.hidden {
+    display: none
+}
+
+/* Summary Grid */
+.val-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px
+}
+
+.val-card {
+    background: rgba(255, 255, 255, .02);
+    border: 1px solid var(--brd);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.val-card-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--dim);
+    font-weight: 600
+}
+
+.val-big {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: var(--mono);
+    line-height: 1.1;
+    margin: 4px 0
+}
+
+.val-label {
+    font-size: 11px;
+    color: var(--dim)
+}
+
+.val-domain-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px
+}
+
+.val-domain-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid var(--brd);
+    color: var(--txt)
+}
+
+.val-domain-name {
+    color: var(--acc);
+    font-weight: 600;
+    text-transform: capitalize
+}
+
+.val-detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px
+}
+
+.val-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px
+}
+
+.val-row .lbl {
+    color: var(--dim)
+}
+
+.val-row .val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--brt)
+}
+
+.val-note {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(108, 180, 238, .04);
+    border: 1px solid rgba(108, 180, 238, .12);
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.6
+}
+
+/* Benchmark Table */
+.val-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px
+}
+
+.val-table th {
+    text-align: left;
+    padding: 7px 8px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--brd2);
+    background: rgba(0, 0, 0, .2)
+}
+
+.val-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, .04)
+}
+
+.val-table td.mono,
+.val-table .mono {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--brt)
+}
+
+.val-table tbody tr:hover {
+    background: rgba(255, 255, 255, .03)
+}
+
+.val-table-sm {
+    font-size: 10px
+}
+
+.val-table-sm td {
+    padding: 4px 6px
+}
+
+.val-metric-name {
+    color: var(--txt);
+    font-weight: 500
+}
+
+.val-unit {
+    font-size: 9px;
+    color: var(--dim);
+    font-weight: 400
+}
+
+.val-status {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .4px
+}
+
+.val-pass {
+    background: rgba(74, 222, 128, .12);
+    color: var(--ok)
+}
+
+.val-fail {
+    background: rgba(247, 112, 98, .12);
+    color: var(--acc3)
+}
+
+/* Normalized Error Bars */
+.val-bar-section {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.val-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--dim);
+    font-weight: 600;
+    margin-bottom: 6px
+}
+
+.val-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px
+}
+
+.val-bar-label {
+    width: 100px;
+    text-align: right;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.val-bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, .04);
+    overflow: hidden;
+    position: relative
+}
+
+.val-bar-fill {
+    height: 100%;
+    transition: width .3s ease
+}
+
+.val-bar-pct {
+    width: 32px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--dim);
+    text-align: right;
+    flex-shrink: 0
+}
+
+/* Observational section */
+.val-obs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px
+}
+
+.val-obs-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px
+}
+
+.val-obs-catalog {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--acc);
+    font-family: var(--mono)
+}
+
+.val-obs-desc {
+    font-size: 10px;
+    color: var(--dim)
+}
+
+.val-obs-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, .02);
+    border: 1px solid var(--brd)
+}
+
+.val-obs-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px
+}
+
+.val-obs-stat .lbl {
+    color: var(--dim)
+}
+
+.val-obs-stat .val {
+    color: var(--brt)
+}

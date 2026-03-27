@@ -9,6 +9,9 @@ function openWindow(type) {
         requestAnimationFrame(() => {
             if (typeof initGCEChart === 'function') initGCEChart();
         });
+    } else if (type === 'validation') {
+        document.getElementById('validationWindow').classList.remove('hidden');
+        loadValidation();
     } else if (type === 'genOpts') {
         document.getElementById('genOptsOverlay').classList.toggle('hidden');
     }

@@ -8,7 +8,8 @@ Evolves gas composition in concentric annuli under:
 """
 import numpy as np
 from .config import (ELEMENTS, N_ELEMENTS, EL_IDX,
-                     BBN_ABUNDANCE, SOLAR_X, Z_SUN, coerce_solver_params)
+                     BBN_ABUNDANCE, SOLAR_X, Z_SUN, TRACKED_Z_TO_TOTAL_SCALE,
+                     coerce_solver_params)
 from .physics import (imf_norm, stellar_lifetime, dying_mass_at,
                       remnant_mass, dtd_powerlaw, imf_number_per_msun,
                       imf_return_fraction)
@@ -218,7 +219,7 @@ class GCESolver:
             enrich_nsm = rate_nsm * y_nsm * dt
 
             # ---- Collapsar / Jet-SNe r-process (instantaneous, tied to CCSNe) ----
-            collapsar_frac = p.get('collapsar_frac', 0.01)
+            collapsar_frac = p.get('collapsar_frac', 0.001)
             n_collapsar = dm_sf * self.imf_stats['ccsn_number_per_msun'] * collapsar_frac
             enrich_coll = n_collapsar * y_coll
 
@@ -272,6 +273,8 @@ class GCESolver:
     def _results(self):
         idx_H  = EL_IDX['H']
         idx_He = EL_IDX['He']
+        metallicity_tracked = self.Z_
+        metallicity_total = self.Z_ * TRACKED_Z_TO_TOTAL_SCALE
 
         # [X/H] = log10(X_i/X_H) - log10(X_i☉/X_H☉)
         XH = {}
@@ -290,7 +293,11 @@ class GCESolver:
             'time': self.t.tolist(),
             'radius': self.r.tolist(),
             'elements': ELEMENTS,
-            'metallicity': self.Z_.tolist(),
+            # Externally expose metallicity on the same total-Z scale used by
+            # the disk / planet modules and validation anchors (Asplund 2009).
+            'metallicity': metallicity_total.tolist(),
+            'metallicity_tracked': metallicity_tracked.tolist(),
+            'metallicity_total_est': metallicity_total.tolist(),
             'gas_mass': self.Mgas.tolist(),
             'stellar_mass': self.Mstar.tolist(),
             'sfr': self.SFR.tolist(),

@@ -274,7 +274,11 @@ def compute_physical_properties(mass_earth, ptype, a_AU, star_mass,
         else:
             T_eq_prelim = estimate_equilibrium_temperature(L_star_Lsun, a_AU, 0.20)
             a_surf = 0.12  # basaltic surface
-            if T_eq_prelim < 200:  # ice-covered
+            # Temperate rocky planets with mixed cloud/ocean/land cover should
+            # sit closer to Earth's Bond albedo than bare basalt.
+            if 240 <= T_eq_prelim <= 320:
+                a_surf = 0.30
+            elif T_eq_prelim < 200:  # ice-covered
                 a_surf = 0.5
             elif T_eq_prelim < 273:  # partial ice
                 ice_frac = np.clip((273 - T_eq_prelim) / 100, 0, 0.7)
@@ -411,7 +415,8 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
                        L_star_Lsun=1.0, star_teff=5778, semi_major_au=1.0,
                        star_radius_rsun=None, rotation_period_hr=None,
                        orbital_period_days=None, tidally_locked=False,
-                       tidal_heating_TW=0.0, flare_boost=None):
+                       tidal_heating_TW=0.0, flare_boost=None,
+                       surface_relative_humidity=0.65, biotic_o2_atm=None):
     """Compute full atmospheric composition and properties.
 
     Molecular speciation from C-H-O-N-S-P system based on
@@ -419,6 +424,8 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     Photolysis lifetimes from stellar UV template (photolysis module).
     Jeans + XUV escape (Catling & Zahnle 2009, Lammer+2003).
     Greenhouse from CO₂/H₂O/CH₄ (Wordsworth & Pierrehumbert 2013).
+    Optional knobs support sub-saturated rocky atmospheres and explicitly
+    oxygenated modern-Earth analogues without changing the abiogenic default.
     """
     # === GAS GIANTS / MINI-NEPTUNES ===
     if ptype == 'gas_giant':
@@ -433,6 +440,10 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     rotation_period_hr = float(max(rotation_period_hr if rotation_period_hr is not None else 24.0, 0.5))
     orbital_period_days = float(max(orbital_period_days if orbital_period_days is not None else 365.25, 0.05))
     tidal_heating_TW = float(max(tidal_heating_TW, 0.0))
+    base_albedo_bond = float(np.clip(albedo_bond, 0.0, 0.95))
+    albedo_bond = base_albedo_bond
+    surface_relative_humidity = float(np.clip(surface_relative_humidity, 0.05, 1.0))
+    biotic_o2_atm = None if biotic_o2_atm is None else float(max(biotic_o2_atm, 0.0))
     slow_rotator = bool(tidally_locked or rotation_period_hr >= 240.0)
     tidal_flux_w_m2 = tidal_heating_TW * 1e12 / max(A_surface, 1.0)
 
@@ -496,6 +507,12 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
 
         dT_ch4 = min(15.0, 3.0 * (P_CH4_atm / 1e-6) ** 0.2) if P_CH4_atm > 0 else 0.0
         dT_h2_cia = min(40.0, 5.0 * P_H2_atm ** 0.4) if P_H2_atm > 0.001 else 0.0
+        dT_background = 0.0
+        if 0.2 <= P_total <= 10.0 and P_H2O_atm > 1e-4:
+            # Dry background gas plus water vapor broadening gives temperate,
+            # N2-dominated atmospheres extra greenhouse leverage even when CO2
+            # stays low.
+            dT_background = min(12.5, 8.5 * np.log1p(P_total / 0.3))
 
         if P_CO2_atm > 0 and P_H2O_atm > 0:
             ratio = min(P_H2O_atm / max(P_CO2_atm, 1e-8), 100.0)
@@ -534,7 +551,7 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
 
         greenhouse_local = max(
             0.0,
-            (dT_co2 + dT_h2o) * f_overlap + dT_ch4 + dT_h2_cia
+            (dT_co2 + dT_h2o) * f_overlap + dT_ch4 + dT_h2_cia + dT_background
             + redistribution_penalty + dT_tidal - rotation_cloud_cooling
         )
         greenhouse_local = min(greenhouse_local * f_broadening, 800.0)
@@ -556,7 +573,9 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     # References: Marty (2012), Halliday (2013)
     f_age = min(1.0, (age_gyr / 4.5) ** 0.5) * mass_earth ** 0.15
     OUTGAS_EFF = {
-        'N': 0.18 * f_age,   # BSE N ~2 ppm, need 3.87e18 N₂ → 18% degas
+        'N': 0.24 * f_age,   # Earth-like secondary atmospheres need slightly
+                             # stronger long-term N2 degassing than the
+                             # previous conservative baseline.
         'C': 0.05 * f_age,   # BSE C ~120 ppm; most C stays as carbonate in crust
                               # Earth total surface C ~ 0.01 wt% BSE (Dasgupta+2013)
         'H': 0.25 * f_age,   # BSE H ~100 ppm, need ~1.4e21 H₂O (ocean+atm)
@@ -808,7 +827,7 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     if allows_ocean:
         T_cond = max(T_eq + 20, 200)
         P_sat = P0 * np.exp(-L_vap / R_GAS * (1 / T_cond - 1 / 373))
-        H2O_atm_max = P_sat * A_surface / g_surface
+        H2O_atm_max = surface_relative_humidity * P_sat * A_surface / g_surface
         if species_mass.get('H2O', 0) > H2O_atm_max:
             ocean_mass = species_mass['H2O'] - H2O_atm_max
             species_mass['H2O'] = H2O_atm_max
@@ -840,7 +859,7 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
             species_mass['CO2'] *= (1 - weathering_frac)
 
             P_sat_new = P0 * np.exp(-L_vap / R_GAS * (1 / max(T_surface_est, 200) - 1 / 373))
-            H2O_atm_new = P_sat_new * A_surface / g_surface
+            H2O_atm_new = surface_relative_humidity * P_sat_new * A_surface / g_surface
             H2O_total = species_mass.get('H2O', 0) + ocean_mass
             if H2O_total > H2O_atm_new:
                 species_mass['H2O'] = H2O_atm_new
@@ -893,31 +912,148 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     O3_factor = max(abiogenic_o2_pal, 1e-15) ** 0.4 * 2.5e-6
     species_mass['O3'] = species_mass['O2'] * O3_factor
 
-    # --- Iterative greenhouse with Clausius-Clapeyron H₂O feedback ---
+    def _solve_surface_climate(base_t_eq, local_species_mass, total_water_inventory,
+                               ocean_mass_local, initial_temp=None, max_iter=10):
+        T_surface_local = max(base_t_eq + 5.0 if initial_temp is None else initial_temp, 180.0)
+        greenhouse_terms_local = {
+            'greenhouse': 0.0,
+            'P_CO2_atm': 0.0,
+            'P_H2O_atm': 0.0,
+            'cc_amplification': 1.0,
+            'rotation_cloud_cooling': 0.0,
+            'redistribution_penalty': 0.0,
+            'tidal_heating_K': 0.0,
+        }
+        iterations_local = 0
+        for _iter in range(max_iter):
+            if allows_ocean and total_water_inventory > 0:
+                P_sat_loop = P0 * np.exp(-L_vap / R_GAS * (1 / max(T_surface_local, 200) - 1 / 373))
+                H2O_atm_loop = min(
+                    total_water_inventory,
+                    surface_relative_humidity * P_sat_loop * A_surface / g_surface,
+                )
+                local_species_mass['H2O'] = H2O_atm_loop
+                ocean_mass_local = max(total_water_inventory - H2O_atm_loop, 0.0)
+
+            state_iter = _atmosphere_state(local_species_mass)
+            greenhouse_terms_local = _greenhouse_response(state_iter, T_surface_local)
+            T_new = base_t_eq + greenhouse_terms_local['greenhouse']
+            iterations_local = _iter + 1
+            if abs(T_new - T_surface_local) < 0.5:
+                T_surface_local = T_new
+                break
+            T_surface_local = 0.5 * (T_surface_local + T_new)
+
+        final_state_local = _atmosphere_state(local_species_mass)
+        greenhouse_terms_local = _greenhouse_response(final_state_local, T_surface_local)
+        T_surface_local = base_t_eq + greenhouse_terms_local['greenhouse']
+        return final_state_local, greenhouse_terms_local, T_surface_local, ocean_mass_local, iterations_local
+
+    def _apply_biogenic_oxygen(local_species_mass, state, target_partial_atm):
+        if target_partial_atm <= 0.0 or state['P_surface_atm'] <= 0.0:
+            return 0.0
+        total_moles = max(sum(state['moles'].values()), 1.0)
+        target_o2_moles = total_moles * target_partial_atm / max(state['P_surface_atm'], 1e-8)
+        target_o2_mass = target_o2_moles * (MOLECULES['O2']['M'] * 1e-3)
+        local_species_mass['O2'] = max(local_species_mass.get('O2', 0.0), target_o2_mass)
+        biotic_pal_local = target_partial_atm / 0.2095
+        total_o2_pal_local = np.clip(max(abiogenic_o2_pal, biotic_pal_local), 1e-14, 2.5)
+        local_species_mass['O3'] = local_species_mass['O2'] * (
+            max(total_o2_pal_local, 1e-15) ** 0.4 * 2.5e-6
+        )
+        return biotic_pal_local
+
     water_inventory_total = max(species_mass.get('H2O', 0.0) + ocean_mass, 0.0)
-    T_surface = max(T_eq + 5.0, 180.0)
-    greenhouse_terms = {'greenhouse': 0.0, 'P_CO2_atm': 0.0, 'P_H2O_atm': 0.0, 'cc_amplification': 1.0}
-    greenhouse_iterations = 0
-    for _iter in range(10):
-        if allows_ocean and water_inventory_total > 0:
-            P_sat_loop = P0 * np.exp(-L_vap / R_GAS * (1 / max(T_surface, 200) - 1 / 373))
-            H2O_atm_loop = min(water_inventory_total, P_sat_loop * A_surface / g_surface)
-            species_mass['H2O'] = H2O_atm_loop
-            ocean_mass = max(water_inventory_total - H2O_atm_loop, 0.0)
+    final_state, greenhouse_terms, T_surface, ocean_mass, greenhouse_iterations = _solve_surface_climate(
+        T_eq,
+        species_mass,
+        water_inventory_total,
+        ocean_mass,
+        initial_temp=max(T_eq + 5.0, 180.0),
+        max_iter=10,
+    )
 
-        state_iter = _atmosphere_state(species_mass)
-        greenhouse_terms = _greenhouse_response(state_iter, T_surface)
-        T_new = T_eq + greenhouse_terms['greenhouse']
-        greenhouse_iterations = _iter + 1
-        if abs(T_new - T_surface) < 0.5:
-            T_surface = T_new
-            break
-        T_surface = 0.5 * (T_surface + T_new)
+    target_biotic_o2_atm = 0.0
+    biotic_o2_pal = 0.0
+    if (
+        biotic_o2_atm is not None
+        and biotic_o2_atm > 0.0
+        and age_gyr >= 2.0
+        and 273.0 <= T_surface <= 330.0
+        and final_state['P_surface_atm'] >= 0.3
+        and ocean_mass > 0.0
+    ):
+        insolation_rel = L_star_Lsun / max(semi_major_au, 1e-4) ** 2
+        age_factor = np.clip((age_gyr - 2.0) / 2.0, 0.0, 1.0)
+        temp_factor = np.exp(-((T_surface - 288.0) / 26.0) ** 2)
+        pressure_factor = np.exp(-(abs(np.log10(max(final_state['P_surface_atm'], 1e-4))) / 0.45) ** 2)
+        insolation_factor = np.exp(-((insolation_rel - 1.0) / 0.25) ** 2)
+        oxygenation_factor = float(np.clip(age_factor * temp_factor * pressure_factor * insolation_factor, 0.0, 1.0))
+        target_biotic_o2_atm = float(biotic_o2_atm * oxygenation_factor)
+        if target_biotic_o2_atm > 1e-4:
+            biotic_o2_pal = _apply_biogenic_oxygen(species_mass, final_state, target_biotic_o2_atm)
+            water_inventory_total = max(species_mass.get('H2O', 0.0) + ocean_mass, 0.0)
+            final_state, greenhouse_terms, T_surface, ocean_mass, oxygen_iterations = _solve_surface_climate(
+                T_eq,
+                species_mass,
+                water_inventory_total,
+                ocean_mass,
+                initial_temp=T_surface,
+                max_iter=6,
+            )
+            greenhouse_iterations += oxygen_iterations
 
-    final_state = _atmosphere_state(species_mass)
-    greenhouse_terms = _greenhouse_response(final_state, T_surface)
+    P_CO2_atm = greenhouse_terms['P_CO2_atm']
+    P_H2O_atm = greenhouse_terms['P_H2O_atm']
+    P_surface_atm = final_state['P_surface_atm']
+
+    # --- Update albedo with atmospheric composition ---
+    if ptype not in ('gas_giant', 'mini_neptune'):
+        if P_H2O_atm > 0.001:
+            f_cloud = min(0.7, (P_H2O_atm / 0.01) ** 0.3)
+            cloud_albedo = f_cloud * 0.5
+            albedo_bond = min(0.85, albedo_bond + cloud_albedo * 0.4)
+
+        if slow_rotator and P_surface_atm > 0.1 and P_H2O_atm > 0.001:
+            locked_cloud_boost = min(0.18 if tidally_locked else 0.08, greenhouse_terms['rotation_cloud_cooling'] / 250.0)
+            albedo_bond = min(0.85, albedo_bond + locked_cloud_boost)
+
+        if P_CO2_atm > 10:
+            albedo_bond = min(0.85, albedo_bond + 0.15 * np.log10(P_CO2_atm / 10))
+
+        if T_surface < 230:
+            albedo_bond = max(albedo_bond, 0.6)
+        elif T_surface < 273:
+            ice_boost = 0.15 * (273 - T_surface) / 43
+            albedo_bond = min(0.7, albedo_bond + ice_boost)
+
+        if 273 < T_surface < 373 and ocean_mass > 0:
+            ocean_frac = min(0.7, ocean_mass / 1.4e21)
+            albedo_bond = albedo_bond * (1 - ocean_frac * 0.3)
+
+    radiative_albedo = base_albedo_bond + 0.30 * (albedo_bond - base_albedo_bond)
+    T_eq_effective = T_eq * (
+        max(1.0 - radiative_albedo, 1e-6) / max(1.0 - base_albedo_bond, 1e-6)
+    ) ** 0.25
+    if abs(T_eq_effective - T_eq) > 0.25:
+        water_inventory_total = max(species_mass.get('H2O', 0.0) + ocean_mass, 0.0)
+        final_state, greenhouse_terms, T_surface, ocean_mass, albedo_iterations = _solve_surface_climate(
+            T_eq_effective,
+            species_mass,
+            water_inventory_total,
+            ocean_mass,
+            initial_temp=T_surface,
+            max_iter=6,
+        )
+        greenhouse_iterations += albedo_iterations
+
+    if target_biotic_o2_atm > 1e-4:
+        biotic_o2_pal = _apply_biogenic_oxygen(species_mass, final_state, target_biotic_o2_atm)
+        final_state = _atmosphere_state(species_mass)
+        greenhouse_terms = _greenhouse_response(final_state, T_surface)
+        T_surface = T_eq_effective + greenhouse_terms['greenhouse']
+
     greenhouse = greenhouse_terms['greenhouse']
-    T_surface = T_eq + greenhouse
     P_CO2_atm = greenhouse_terms['P_CO2_atm']
     P_H2O_atm = greenhouse_terms['P_H2O_atm']
     atm_mass = final_state['atm_mass']
@@ -955,30 +1091,6 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
         and not cold_trap_collapse_risk
     )
 
-    # --- Update albedo with atmospheric composition ---
-    if ptype not in ('gas_giant', 'mini_neptune'):
-        if P_H2O_atm > 0.001:
-            f_cloud = min(0.7, (P_H2O_atm / 0.01) ** 0.3)
-            cloud_albedo = f_cloud * 0.5
-            albedo_bond = min(0.85, albedo_bond + cloud_albedo * 0.4)
-
-        if slow_rotator and P_surface_atm > 0.1 and P_H2O_atm > 0.001:
-            locked_cloud_boost = min(0.18 if tidally_locked else 0.08, greenhouse_terms['rotation_cloud_cooling'] / 250.0)
-            albedo_bond = min(0.85, albedo_bond + locked_cloud_boost)
-
-        if P_CO2_atm > 10:
-            albedo_bond = min(0.85, albedo_bond + 0.15 * np.log10(P_CO2_atm / 10))
-
-        if T_surface < 230:
-            albedo_bond = max(albedo_bond, 0.6)
-        elif T_surface < 273:
-            ice_boost = 0.15 * (273 - T_surface) / 43
-            albedo_bond = min(0.7, albedo_bond + ice_boost)
-
-        if 273 < T_surface < 373 and ocean_mass > 0:
-            ocean_frac = min(0.7, ocean_mass / 1.4e21)
-            albedo_bond = albedo_bond * (1 - ocean_frac * 0.3)
-
     # --- Atmospheric properties ---
     mu_kg = mu * 1e-3
     scale_height = R_GAS * T_surface / (mu_kg * g_surface)
@@ -992,6 +1104,7 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
         'surface_pressure_bar': round(float(P_surface_bar), 6),
         'surface_temp_K': round(float(T_surface), 1),
         'T_eq_K': round(float(T_eq), 1),
+        'T_eq_effective_K': round(float(T_eq_effective), 1),
         'greenhouse_K': round(float(greenhouse), 1),
         'scale_height_km': round(float(scale_height * 1e-3), 2),
         'tropopause_km': round(float(tropopause * 1e-3), 1),
@@ -1004,8 +1117,11 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
         'atm_relative_mass': float(f'{atm_mass / M:.3e}'),
         'water_ocean_mass_kg': float(f'{ocean_mass:.3e}'),
         'abiogenic_o2_pal': float(f'{abiogenic_o2_pal:.3e}'),
+        'biotic_o2_pal': float(f'{biotic_o2_pal:.3e}'),
+        'biotic_o2_partial_atm': round(float(target_biotic_o2_atm), 6),
         'volcanic_o2_sink_mol_yr': float(f'{red_flux_mol_yr:.3e}'),
         'albedo_bond_eff': round(float(albedo_bond), 3),
+        'surface_relative_humidity': round(float(surface_relative_humidity), 3),
         'composition': composition,
         'feedback_diagnostics': {
             'iterations': greenhouse_iterations,

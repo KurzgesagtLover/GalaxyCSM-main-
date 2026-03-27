@@ -12,7 +12,9 @@
         "t_max": 13.8,
         "r_min": 0.5,
         "r_max": 15.5,
-        "dr": 1.0
+        "dr": 1.0,
+        "yield_r_multiplier": 1.1,
+        "outflow_eta": 1.1
       },
       "solar_radius_kpc": 8.0,
       "slope_window_kpc": [
@@ -43,6 +45,8 @@
       "ecc": 0.0167,
       "age_gyr": 4.57,
       "oxidation_iw": -2.0,
+      "surface_relative_humidity": 0.65,
+      "biotic_o2_atm": 0.2095,
       "diff_progress": 1.0,
       "bulk_comp": {
         "O": 0.44,
@@ -82,6 +86,19 @@
         "value": 0.15
       },
       "source": "Solar neighborhood calibration target near the Sun."
+    },
+    {
+      "id": "galaxy.solar_eu_fe",
+      "domain": "galaxy",
+      "key": "solar_eu_fe",
+      "label": "Solar neighborhood [Eu/Fe]",
+      "unit": "dex",
+      "observed": 0.0,
+      "tolerance": {
+        "mode": "abs",
+        "value": 0.15
+      },
+      "source": "Solar-metallicity disk stars should sit near solar [Eu/Fe] once the default r-process mix is calibrated."
     },
     {
       "id": "galaxy.radial_feh_slope",

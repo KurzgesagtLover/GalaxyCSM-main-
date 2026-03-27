@@ -27,6 +27,7 @@
             <button class="hdr-btn" onclick="openWindow('genOpts')">생성 옵션</button>
             <button class="hdr-btn" onclick="openWindow('hr')">H-R 다이어그램</button>
             <button class="hdr-btn" onclick="openWindow('gce')">GCE 차트</button>
+            <button class="hdr-btn hdr-btn-val" onclick="openWindow('validation')">물리 검증</button>
             <span class="badge" id="badge"><span class="dot"></span><span id="statusTxt">Ready</span></span>
         </div>
     </header>
@@ -297,10 +298,10 @@
                     <div style="font-size:10px;color:var(--dim);margin-bottom:4px">Collapsar / Jet-SNe r-process</div>
                     <label style="display:flex;justify-content:space-between;align-items:center">
                         <span style="font-size:10px">CCSNe 중 Collapsar 비율</span>
-                        <input type="range" id="collapsar_frac" min="0" max="0.1" step="0.005" value="0.01"
+                        <input type="range" id="collapsar_frac" min="0" max="0.1" step="0.001" value="0.001"
                             style="width:80px"
                             oninput="this.nextElementSibling.textContent=(this.value*100).toFixed(1)+'%'"><span
-                            style="font-size:10px;width:35px;text-align:right">1.0%</span>
+                            style="font-size:10px;width:35px;text-align:right">0.1%</span>
                     </label>
                     <label style="display:flex;justify-content:space-between;align-items:center">
                         <span style="font-size:10px">Collapsar 방출 질량 (M☉)</span>
@@ -314,6 +315,22 @@
                     style="width:100%; margin-top:10px; padding:8px; background:rgba(108,180,238,0.08); border:1px solid var(--acc); color:var(--acc); font-weight:bold; cursor:pointer; transition:all 0.2s;">
                     모델 재계산 적용 (Re-calculate)
                 </button>
+            </div>
+        </div>
+
+        <!-- Validation Window -->
+        <div id="validationWindow" class="float-window hidden" style="width:920px;height:680px;left:60px;top:50px">
+            <div class="win-header" onmousedown="startDrag(event,'validationWindow')">
+                <span>물리 검증 & 관측 대조</span>
+                <button class="close-btn" onclick="closePanel('validationWindow')">&times;</button>
+            </div>
+            <div class="win-body val-body" id="validationContent">
+                <div class="val-placeholder">
+                    <div class="val-placeholder-icon">⏳</div>
+                    <p>검증 데이터를 불러오는 중…</p>
+                    <p class="val-sub">공개 기준값 벤치마크 + VizieR 관측 카탈로그 대조 실행 중</p>
+                    <div class="val-spinner"></div>
+                </div>
             </div>
         </div>
 
@@ -386,6 +403,7 @@
     <script src="/js/detail.js"></script>
     <script src="/js/hr.js"></script>
     <script src="/js/gce_chart.js"></script>
+    <script src="/js/validation_ui.js"></script>
     <script src="/js/windowing.js"></script>
 </body>
 

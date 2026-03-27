@@ -123,6 +123,32 @@ def test_abiogenic_o2_is_sink_limited():
     )
 
 
+def test_explicit_modern_earth_oxygenation_matches_anchor():
+    bulk = {
+        'O': 0.44, 'Fe': 0.32, 'Si': 0.21, 'Mg': 0.15, 'Al': 0.02,
+        'C': 2.0e-3, 'N': 2.0e-4, 'S': 2.0e-2, 'P': 6.0e-4,
+    }
+    diff = differentiate_full(1.0, bulk, -2.0, diff_progress=1.0, lv_class_params=LV_WET)
+    surface = build_outgassing_reservoir(diff)
+    atmo = compute_atmosphere(
+        surface, 1.0, 'rocky', 255.0, 9.81, 11186.0, 4.57, -2.0,
+        surface_relative_humidity=0.65,
+        biotic_o2_atm=0.2095,
+    )
+
+    o2_partial = atmo['composition'].get('O2', {}).get('partial_P_atm', 0.0)
+    assert abs(atmo['surface_pressure_atm'] - 1.0) < 0.12
+    assert abs(atmo['surface_temp_K'] - 288.0) < 6.5
+    assert abs(o2_partial - 0.2095) < 0.05
+
+    print('modern Earth oxygenation anchor: OK')
+    print(
+        f"  P={atmo['surface_pressure_atm']:.3f} atm  "
+        f"T={atmo['surface_temp_K']:.1f} K  "
+        f"O2={o2_partial:.3f} atm"
+    )
+
+
 def test_h2o_feedback_iterates_on_surface_temperature():
     bulk = {
         'O': 0.44, 'Fe': 0.06, 'Si': 0.21, 'Mg': 0.15, 'Al': 0.02,

@@ -1,0 +1,596 @@
+{
+  "benchmark_validation": {
+    "metadata": {
+      "generated_at": "2026-03-27T13:16:30.353913+00:00",
+      "manifest_name": "public_full_stack",
+      "manifest_label": "Public Full-Stack Physics Benchmarks",
+      "manifest_version": 1,
+      "manifest_path": "C:\\Users\\soomi\\Downloads\\Projects\\GalaxyCSM\\GalaxyCSM-main\\validation\\benchmarks\\public_full_stack.json"
+    },
+    "summary": {
+      "passed": 14,
+      "failed": 0,
+      "total": 14,
+      "pass_rate": 1.0,
+      "domains": {
+        "galaxy": {
+          "passed": 4,
+          "failed": 0,
+          "total": 4
+        },
+        "stellar": {
+          "passed": 3,
+          "failed": 0,
+          "total": 3
+        },
+        "planet": {
+          "passed": 7,
+          "failed": 0,
+          "total": 7
+        }
+      },
+      "worst_metrics": [
+        {
+          "id": "planet.earth_surface_pressure_atm",
+          "domain": "planet",
+          "label": "Earth surface pressure",
+          "unit": "atm",
+          "source": "Standard mean sea-level atmospheric pressure.",
+          "observed": 1.0,
+          "actual": 0.822774,
+          "signed_diff": -0.177226,
+          "abs_diff": 0.177226,
+          "rel_diff": 0.177226,
+          "tolerance": {
+            "mode": "abs",
+            "value": 0.25
+          },
+          "passed": true,
+          "status": "pass",
+          "normalized_error": 0.708904
+        },
+        {
+          "id": "planet.earth_surface_temperature_k",
+          "domain": "planet",
+          "label": "Earth mean surface temperature",
+          "unit": "K",
+          "source": "Canonical modern Earth mean surface temperature.",
+          "observed": 288.0,
+          "actual": 294.7,
+          "signed_diff": 6.699999999999989,
+          "abs_diff": 6.699999999999989,
+          "rel_diff": 0.023263888888888848,
+          "tolerance": {
+            "mode": "abs",
+            "value": 10.0
+          },
+          "passed": true,
+          "status": "pass",
+          "normalized_error": 0.6699999999999988
+        },
+        {
+          "id": "galaxy.solar_eu_fe",
+          "domain": "galaxy",
+          "label": "Solar neighborhood [Eu/Fe]",
+          "unit": "dex",
+          "source": "Solar-metallicity disk stars should sit near solar [Eu/Fe] once the default r-process mix is calibrated.",
+          "observed": 0.0,
+          "actual": -0.040883698397297774,
+          "signed_diff": -0.040883698397297774,
+          "abs_diff": 0.040883698397297774,
+          "rel_diff": null,
+          "tolerance": {
+            "mode": "abs",
+            "value": 0.15
+          },
+          "passed": true,
+          "status": "pass",
+          "normalized_error": 0.2725579893153185
+        },
+        {
+          "id": "galaxy.solar_metallicity_z",
+          "domain": "galaxy",
+          "label": "Solar-zone metallicity Z",
+          "unit": "mass fraction",
+          "source": "Solar heavy-element mass fraction from Asplund et al. 2009.",
+          "observed": 0.0134,
+          "actual": 0.012558328405474994,
+          "signed_diff": -0.000841671594525006,
+          "abs_diff": 0.000841671594525006,
+          "rel_diff": 0.06281131302425418,
+          "tolerance": {
+            "mode": "abs",
+            "value": 0.004
+          },
+          "passed": true,
+          "status": "pass",
+          "normalized_error": 0.21041789863125152
+        },
+        {
+          "id": "galaxy.solar_feh",
+          "domain": "galaxy",
+          "label": "Solar neighborhood [Fe/H]",
+          "unit": "dex",
+          "source": "Solar neighborhood calibration target near the Sun.",
+          "observed": 0.0,
+          "actual": 0.02083833155959658,
+          "signed_diff": 0.02083833155959658,
+          "abs_diff": 0.02083833155959658,
+          "rel_diff": null,
+          "tolerance": {
+            "mode": "abs",
+            "value": 0.15
+          },
+          "passed": true,
+          "status": "pass",
+          "normalized_error": 0.13892221039731054
+        }
+      ]
+    },
+    "actuals": {
+      "galaxy": {
+        "metrics": {
+          "solar_feh": 0.02083833155959658,
+          "solar_eu_fe": -0.040883698397297774,
+          "solar_metallicity_z": 0.012558328405474994,
+          "radial_feh_slope": -0.049094863546424256
+        },
+        "context": {
+          "nearest_solar_annulus_kpc": 7.5,
+          "slope_window_kpc": [
+            4.0,
+            12.0
+          ],
+          "radii_kpc": [
+            0.5,
+            1.5,
+            2.5,
+            3.5,
+            4.5,
+            5.5,
+            6.5,
+            7.5,
+            8.5,
+            9.5,
+            10.5,
+            11.5,
+            12.5,
+            13.5,
+            14.5
+          ],
+          "final_feh_profile": [
+            0.2551917735745062,
+            0.2309179428624435,
+            0.2060218169062047,
+            0.17859312983865783,
+            0.14706718879787006,
+            0.11040998387197343,
+            0.06823742460751614,
+            0.02083833155959658,
+            -0.030818354087774225,
+            -0.08505279025156831,
+            -0.1394046785468097,
+            -0.19055679628514355,
+            -0.2344695275934936,
+            -0.2670856067217655,
+            -0.2858026072902877
+          ],
+          "final_euh_profile": [
+            0.19798316888791412,
+            0.17514220641075262,
+            0.15202916538395606,
+            0.12674807718116554,
+            0.09769536993142935,
+            0.0637567458439765,
+            0.024447000032632005,
+            -0.020045366837701195,
+            -0.06883464891657276,
+            -0.12029575781804702,
+            -0.17198633411066488,
+            -0.2205667634942312,
+            -0.26194377063995766,
+            -0.29201054199094756,
+            -0.3081818167461883
+          ]
+        }
+      },
+      "stellar": {
+        "metrics": {
+          "solar_teff": 5773.0,
+          "solar_luminosity_lsun": 1.005072,
+          "solar_radius_rsun": 1.00045
+        },
+        "context": {
+          "phase": "MS",
+          "spectral_class": "G2V",
+          "age_gyr": 4.57,
+          "metallicity_z": 0.0134,
+          "stellar_model": "auto"
+        }
+      },
+      "planet": {
+        "metrics": {
+          "earth_insolation_w_m2": 1361.1,
+          "earth_gravity_m_s2": 9.82,
+          "earth_escape_velocity_km_s": 11.19,
+          "earth_equilibrium_temperature_k": 254.7,
+          "earth_surface_pressure_atm": 0.822774,
+          "earth_surface_temperature_k": 294.7,
+          "earth_n2_partial_pressure_atm": 0.781539
+        },
+        "context": {
+          "surface_reservoir": {
+            "P": 0.00037394999999999996,
+            "S": 0.0066645,
+            "Si": 0.1917972,
+            "C": 0.0018073,
+            "N": 0.000190965,
+            "H": 1.665e-05,
+            "Al": 0.0197833,
+            "O": 0.41629635,
+            "Mg": 0.15,
+            "Fe": 0.026900049699999998
+          },
+          "albedo_bond_initial": 0.3,
+          "albedo_bond_effective": 0.424,
+          "water_ocean_mass_kg": 1.663e+20,
+          "tidally_locked": false,
+          "spin_state": "intermediate_rotator"
+        }
+      }
+    },
+    "results": [
+      {
+        "id": "galaxy.solar_feh",
+        "domain": "galaxy",
+        "label": "Solar neighborhood [Fe/H]",
+        "unit": "dex",
+        "source": "Solar neighborhood calibration target near the Sun.",
+        "observed": 0.0,
+        "actual": 0.02083833155959658,
+        "signed_diff": 0.02083833155959658,
+        "abs_diff": 0.02083833155959658,
+        "rel_diff": null,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.15
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.13892221039731054
+      },
+      {
+        "id": "galaxy.solar_eu_fe",
+        "domain": "galaxy",
+        "label": "Solar neighborhood [Eu/Fe]",
+        "unit": "dex",
+        "source": "Solar-metallicity disk stars should sit near solar [Eu/Fe] once the default r-process mix is calibrated.",
+        "observed": 0.0,
+        "actual": -0.040883698397297774,
+        "signed_diff": -0.040883698397297774,
+        "abs_diff": 0.040883698397297774,
+        "rel_diff": null,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.15
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.2725579893153185
+      },
+      {
+        "id": "galaxy.radial_feh_slope",
+        "domain": "galaxy",
+        "label": "Milky Way radial [Fe/H] slope",
+        "unit": "dex/kpc",
+        "source": "Representative modern Milky Way disk abundance gradient from open cluster, Cepheid, and survey studies.",
+        "observed": -0.05,
+        "actual": -0.049094863546424256,
+        "signed_diff": 0.0009051364535757472,
+        "abs_diff": 0.0009051364535757472,
+        "rel_diff": 0.018102729071514945,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.02
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.04525682267878736
+      },
+      {
+        "id": "galaxy.solar_metallicity_z",
+        "domain": "galaxy",
+        "label": "Solar-zone metallicity Z",
+        "unit": "mass fraction",
+        "source": "Solar heavy-element mass fraction from Asplund et al. 2009.",
+        "observed": 0.0134,
+        "actual": 0.012558328405474994,
+        "signed_diff": -0.000841671594525006,
+        "abs_diff": 0.000841671594525006,
+        "rel_diff": 0.06281131302425418,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.004
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.21041789863125152
+      },
+      {
+        "id": "stellar.solar_teff",
+        "domain": "stellar",
+        "label": "Solar effective temperature",
+        "unit": "K",
+        "source": "IAU 2015 nominal solar effective temperature.",
+        "observed": 5772.0,
+        "actual": 5773.0,
+        "signed_diff": 1.0,
+        "abs_diff": 1.0,
+        "rel_diff": 0.00017325017325017325,
+        "tolerance": {
+          "mode": "abs",
+          "value": 120.0
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.008333333333333333
+      },
+      {
+        "id": "stellar.solar_luminosity_lsun",
+        "domain": "stellar",
+        "label": "Solar luminosity",
+        "unit": "Lsun",
+        "source": "IAU nominal solar luminosity in solar units.",
+        "observed": 1.0,
+        "actual": 1.005072,
+        "signed_diff": 0.005071999999999965,
+        "abs_diff": 0.005071999999999965,
+        "rel_diff": 0.005071999999999965,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.15
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.033813333333333105
+      },
+      {
+        "id": "stellar.solar_radius_rsun",
+        "domain": "stellar",
+        "label": "Solar radius",
+        "unit": "Rsun",
+        "source": "IAU nominal solar radius in solar units.",
+        "observed": 1.0,
+        "actual": 1.00045,
+        "signed_diff": 0.00045000000000006146,
+        "abs_diff": 0.00045000000000006146,
+        "rel_diff": 0.00045000000000006146,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.08
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.005625000000000768
+      },
+      {
+        "id": "planet.earth_insolation_w_m2",
+        "domain": "planet",
+        "label": "Earth insolation",
+        "unit": "W/m^2",
+        "source": "IAU nominal total solar irradiance at 1 AU.",
+        "observed": 1361.0,
+        "actual": 1361.1,
+        "signed_diff": 0.09999999999990905,
+        "abs_diff": 0.09999999999990905,
+        "rel_diff": 7.347538574570834e-05,
+        "tolerance": {
+          "mode": "abs",
+          "value": 20.0
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.0049999999999954525
+      },
+      {
+        "id": "planet.earth_gravity_m_s2",
+        "domain": "planet",
+        "label": "Earth surface gravity",
+        "unit": "m/s^2",
+        "source": "Nominal Earth surface gravity.",
+        "observed": 9.81,
+        "actual": 9.82,
+        "signed_diff": 0.009999999999999787,
+        "abs_diff": 0.009999999999999787,
+        "rel_diff": 0.0010193679918450342,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.2
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.049999999999998934
+      },
+      {
+        "id": "planet.earth_escape_velocity_km_s",
+        "domain": "planet",
+        "label": "Earth escape velocity",
+        "unit": "km/s",
+        "source": "Nominal Earth escape velocity.",
+        "observed": 11.186,
+        "actual": 11.19,
+        "signed_diff": 0.0039999999999995595,
+        "abs_diff": 0.0039999999999995595,
+        "rel_diff": 0.0003575898444483783,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.15
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.02666666666666373
+      },
+      {
+        "id": "planet.earth_equilibrium_temperature_k",
+        "domain": "planet",
+        "label": "Earth equilibrium temperature",
+        "unit": "K",
+        "source": "Canonical Earth radiative-equilibrium temperature with Bond albedo near 0.3.",
+        "observed": 255.0,
+        "actual": 254.7,
+        "signed_diff": -0.30000000000001137,
+        "abs_diff": 0.30000000000001137,
+        "rel_diff": 0.0011764705882353387,
+        "tolerance": {
+          "mode": "abs",
+          "value": 8.0
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.03750000000000142
+      },
+      {
+        "id": "planet.earth_surface_pressure_atm",
+        "domain": "planet",
+        "label": "Earth surface pressure",
+        "unit": "atm",
+        "source": "Standard mean sea-level atmospheric pressure.",
+        "observed": 1.0,
+        "actual": 0.822774,
+        "signed_diff": -0.177226,
+        "abs_diff": 0.177226,
+        "rel_diff": 0.177226,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.25
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.708904
+      },
+      {
+        "id": "planet.earth_surface_temperature_k",
+        "domain": "planet",
+        "label": "Earth mean surface temperature",
+        "unit": "K",
+        "source": "Canonical modern Earth mean surface temperature.",
+        "observed": 288.0,
+        "actual": 294.7,
+        "signed_diff": 6.699999999999989,
+        "abs_diff": 6.699999999999989,
+        "rel_diff": 0.023263888888888848,
+        "tolerance": {
+          "mode": "abs",
+          "value": 10.0
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.6699999999999988
+      },
+      {
+        "id": "planet.earth_n2_partial_pressure_atm",
+        "domain": "planet",
+        "label": "Earth N2 partial pressure",
+        "unit": "atm",
+        "source": "Modern Earth dry-air nitrogen abundance.",
+        "observed": 0.7808,
+        "actual": 0.781539,
+        "signed_diff": 0.0007389999999999342,
+        "abs_diff": 0.0007389999999999342,
+        "rel_diff": 0.0009464651639343419,
+        "tolerance": {
+          "mode": "abs",
+          "value": 0.2
+        },
+        "passed": true,
+        "status": "pass",
+        "normalized_error": 0.0036949999999996708
+      }
+    ]
+  },
+  "observational_validation": {
+    "source": {
+      "label": "Zhang et al. (2024) open clusters",
+      "catalog_id": "VizieR J/A+A/692/A212",
+      "catalog_url": "https://cdsarc.cds.unistra.fr/ftp/J/A+A/692/A212/tablea1.dat",
+      "readme_url": "https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/J/A+A/692/A212?format=html&tex=true",
+      "cache_path": "C:\\Users\\soomi\\Downloads\\Projects\\GalaxyCSM\\GalaxyCSM-main\\validation\\cache\\J_A+A_692_A212_tablea1.dat"
+    },
+    "selection": {
+      "min_members": 3,
+      "r_min_kpc": 4.0,
+      "r_max_kpc": 12.0,
+      "n_clusters": 109
+    },
+    "simulation": {
+      "manifest_path": "C:\\Users\\soomi\\Downloads\\Projects\\GalaxyCSM\\GalaxyCSM-main\\validation\\benchmarks\\public_full_stack.json",
+      "solar_radius_kpc": 8.0,
+      "solar_feh": -0.004990011264088823,
+      "native_slope_dex_per_kpc": -0.049094863546424256,
+      "sampled_slope_dex_per_kpc": -0.05342320749522205,
+      "sampled_intercept_dex": 0.4226356546312978
+    },
+    "observation": {
+      "slope_dex_per_kpc": -0.05900765449041499,
+      "slope_err_dex_per_kpc": 0.013564138397393758,
+      "intercept_dex": 0.44243031910743913,
+      "solar_feh": -0.014296693006518802,
+      "solar_scatter_dex": 0.08944316200869787,
+      "solar_cluster_count": 29
+    },
+    "comparison": {
+      "slope_delta_dex_per_kpc": 0.005584446995192942,
+      "slope_sigma_offset": 0.41170672486399496,
+      "slope_status": "good",
+      "mean_signed_residual_dex": 0.0486767203023198,
+      "mean_abs_residual_dex": 0.09475935929263171,
+      "median_abs_residual_dex": 0.0722186129128892,
+      "rmse_dex": 0.1292484284664028,
+      "reduced_chi2": 0.8186863755088228
+    },
+    "profile": {
+      "binned_profile": [
+        {
+          "r_lo_kpc": 7.0,
+          "r_hi_kpc": 8.0,
+          "count": 11,
+          "observed_weighted_mean_feh": -0.08130093210167633,
+          "observed_std_feh": 0.07306503909279852,
+          "simulated_feh": 0.02083833155959658
+        },
+        {
+          "r_lo_kpc": 8.0,
+          "r_hi_kpc": 9.0,
+          "count": 44,
+          "observed_weighted_mean_feh": -0.03265354932456307,
+          "observed_std_feh": 0.13907897973354613,
+          "simulated_feh": -0.030818354087774225
+        },
+        {
+          "r_lo_kpc": 9.0,
+          "r_hi_kpc": 10.0,
+          "count": 40,
+          "observed_weighted_mean_feh": -0.12660602377957514,
+          "observed_std_feh": 0.09778029301371124,
+          "simulated_feh": -0.08505279025156831
+        },
+        {
+          "r_lo_kpc": 10.0,
+          "r_hi_kpc": 11.0,
+          "count": 11,
+          "observed_weighted_mean_feh": -0.15970561882569984,
+          "observed_std_feh": 0.0717974280550846,
+          "simulated_feh": -0.1394046785468097
+        },
+        {
+          "r_lo_kpc": 11.0,
+          "r_hi_kpc": 12.0,
+          "count": 3,
+          "observed_weighted_mean_feh": -0.08960821190908148,
+          "observed_std_feh": 0.23933383381868084,
+          "simulated_feh": -0.19055679628514355
+        }
+      ]
+    }
+  }
+}

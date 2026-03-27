@@ -12,6 +12,7 @@ class ValidationPipelineTest(unittest.TestCase):
     def test_report_contains_expected_metrics(self):
         metric_ids = {item["id"] for item in self.report["results"]}
         self.assertIn("galaxy.solar_feh", metric_ids)
+        self.assertIn("galaxy.solar_eu_fe", metric_ids)
         self.assertIn("stellar.solar_teff", metric_ids)
         self.assertIn("planet.earth_surface_pressure_atm", metric_ids)
         self.assertEqual(self.report["summary"]["total"], len(metric_ids))

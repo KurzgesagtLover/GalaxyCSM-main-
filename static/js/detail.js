@@ -109,10 +109,10 @@ function updatePanelFromCache() {
 
 /* ---- Comprehensive Uncertainty Controls (4 Tabs) ---- */
 const graphModes = {
-    'r_process': { x: { id: 'yield_r_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' }, y: { id: 'nsm_N_per_Msun', min: 1e-5, max: 1e-4, val: 3e-5, log: true, unit: '/M☉' } },
+    'r_process': { x: { id: 'yield_r_multiplier', min: 0.1, max: 10.0, val: 1.1, log: true, unit: 'x' }, y: { id: 'nsm_N_per_Msun', min: 1e-5, max: 1e-4, val: 3e-5, log: true, unit: '/M☉' } },
     's_process': { x: { id: 'yield_s_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' }, y: { id: 'agb_frequency_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' } },
     'ia_sn': { x: { id: 'yield_ia_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' }, y: { id: 'ia_N_per_Msun', min: 0.5e-3, max: 5.0e-3, val: 2.0e-3, log: true, unit: '/M☉' } },
-    'galaxy': { x: { id: 'sfr_efficiency', min: 0.01, max: 0.30, val: 0.08, log: false, unit: '' }, y: { id: 'outflow_eta', min: 0.0, max: 2.5, val: 0.3, log: false, unit: '' } }
+    'galaxy': { x: { id: 'sfr_efficiency', min: 0.01, max: 0.30, val: 0.08, log: false, unit: '' }, y: { id: 'outflow_eta', min: 0.0, max: 2.5, val: 1.1, log: false, unit: '' } }
 };
 
 let currentGraphMode = 'r_process';
