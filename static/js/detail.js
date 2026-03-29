@@ -112,7 +112,7 @@ const graphModes = {
     'r_process': { x: { id: 'yield_r_multiplier', min: 0.1, max: 10.0, val: 1.1, log: true, unit: 'x' }, y: { id: 'nsm_N_per_Msun', min: 1e-5, max: 1e-4, val: 3e-5, log: true, unit: '/M☉' } },
     's_process': { x: { id: 'yield_s_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' }, y: { id: 'agb_frequency_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' } },
     'ia_sn': { x: { id: 'yield_ia_multiplier', min: 0.1, max: 10.0, val: 1.0, log: true, unit: 'x' }, y: { id: 'ia_N_per_Msun', min: 0.5e-3, max: 5.0e-3, val: 2.0e-3, log: true, unit: '/M☉' } },
-    'galaxy': { x: { id: 'sfr_efficiency', min: 0.01, max: 0.30, val: 0.08, log: false, unit: '' }, y: { id: 'outflow_eta', min: 0.0, max: 2.5, val: 1.1, log: false, unit: '' } }
+    'galaxy': { x: { id: 'sfr_efficiency', min: 0.01, max: 0.30, val: 0.08, log: false, unit: '' }, y: { id: 'outflow_eta', min: 0.0, max: 2.5, val: 1.06, log: false, unit: '' } }
 };
 
 let currentGraphMode = 'r_process';
@@ -189,7 +189,9 @@ function renderStarDetail(d, el) {
       <div class="info-row"><span class="lbl">나이</span><span class="val" data-field="age">${fmtFixedTrunc(d.age_gyr, 3)} Gyr</span></div>
       <div class="info-row"><span class="lbl">탄생</span><span class="val">${fmtFixedTrunc(d.birth_time, 3)} Gyr</span></div>
       <div class="info-row"><span class="lbl">금속성 Z</span><span class="val">${fmtExpTrunc(d.metallicity, 3)}</span></div>
-      <div class="info-row"><span class="lbl">위치</span><span class="val">${fmtFixedTrunc(d.radius_kpc, 3)} kpc</span></div>
+      <div class="info-row"><span class="lbl">탄생 반경</span><span class="val">${fmtFixedTrunc(d.birth_radius_kpc ?? d.radius_kpc, 3)} kpc</span></div>
+      ${d.current_radius_kpc != null ? `<div class="info-row"><span class="lbl">현재 반경</span><span class="val">${fmtFixedTrunc(d.current_radius_kpc, 3)} kpc</span></div>
+      <div class="info-row"><span class="lbl">이동량 Δr</span><span class="val" style="color:${d.radial_migration_delta_kpc > 0 ? '#f94' : d.radial_migration_delta_kpc < 0 ? '#4af' : 'var(--dim)'}">${d.radial_migration_delta_kpc > 0 ? '+' : ''}${fmtFixedTrunc(d.radial_migration_delta_kpc, 3)} kpc</span></div>` : `<div class="info-row"><span class="lbl">위치</span><span class="val">${fmtFixedTrunc(d.radius_kpc, 3)} kpc</span></div>`}
     </div>
   </div>
 
@@ -203,6 +205,19 @@ function renderStarDetail(d, el) {
       <div class="info-row"><span class="lbl">현재 위상</span><span class="val" data-field="phase">${evo.phase_kr || evo.phase}</span></div>
     </div>
   </div>
+
+  ${d.guiding_radius_kpc != null ? `<div class="section"><div class="section-title">궤도 / 운동학</div>
+    <div class="info-grid">
+      <div class="info-row"><span class="lbl">Guiding 반경</span><span class="val">${fmtFixedTrunc(d.guiding_radius_kpc, 3)} kpc</span></div>
+      <div class="info-row"><span class="lbl">Churning ΔR<sub>g</sub></span><span class="val">${d.guiding_radius_delta_kpc > 0 ? '+' : ''}${fmtFixedTrunc(d.guiding_radius_delta_kpc, 3)} kpc</span></div>
+      <div class="info-row"><span class="lbl">Blurring ΔR</span><span class="val">${d.radial_blurring_delta_kpc > 0 ? '+' : ''}${fmtFixedTrunc(d.radial_blurring_delta_kpc, 3)} kpc</span></div>
+      <div class="info-row"><span class="lbl">이심률 e</span><span class="val">${fmtFixedTrunc(d.orbital_eccentricity, 3)}</span></div>
+      <div class="info-row"><span class="lbl">각운동량 L<sub>z</sub></span><span class="val">${fmtFixedTrunc(d.angular_momentum_kpc_km_s, 1)} kpc·km/s</span></div>
+      <div class="info-row"><span class="lbl">원형속도 v<sub>c</sub></span><span class="val">${fmtFixedTrunc(d.circular_velocity_km_s, 1)} km/s</span></div>
+      <div class="info-row"><span class="lbl">속도분산 σ<sub>R</sub>/σ<sub>z</sub></span><span class="val">${fmtFixedTrunc(d.sigma_R_km_s, 1)} / ${fmtFixedTrunc(d.sigma_z_km_s, 1)} km/s</span></div>
+      <div class="info-row"><span class="lbl">속도 v<sub>R</sub>/v<sub>φ</sub></span><span class="val">${fmtFixedTrunc(d.v_R_km_s, 1)} / ${fmtFixedTrunc(d.v_phi_km_s, 1)} km/s</span></div>
+    </div>
+  </div>` : ''}
 
   <div class="section"><div class="section-title">진화 타임라인</div>
     <div class="info-grid">

@@ -13,6 +13,7 @@ from .physics import (
     sample_powerlaw_imf,
     stellar_lifetime as _stellar_lifetime_model,
 )
+from .radial_migration import sample_stellar_migration_state
 from .solver import GCESolver
 from .stellar_properties import PHASE_KR, SPECTRAL, _ms_lifetime, _ms_state, _spectral
 from .stellar_tracks import stellar_evolution
@@ -73,16 +74,21 @@ def _sample_popiii_imf(rng, n):
 
 
 def _spiral_pos(r, rng, n, n_arms=4, pitch_deg=12.0):
+    r_arr = np.asarray(r, dtype=float)
+    if r_arr.ndim == 0:
+        r_arr = np.full(n, float(r_arr))
+    else:
+        r_arr = np.broadcast_to(r_arr, (n,))
     pitch = np.radians(pitch_deg)
     arm = rng.integers(0, n_arms, n)
     arm_off = 2 * np.pi * arm / n_arms
-    theta = (1.0 / np.tan(pitch)) * np.log(np.clip(r, 0.1, None)) + arm_off
-    theta += rng.normal(0, 0.35 + 0.02 * r, n)
-    r_sc = np.abs(r + rng.normal(0, 0.25, n))
-    bulge_frac = np.exp(-r / 1.5)
+    theta = (1.0 / np.tan(pitch)) * np.log(np.clip(r_arr, 0.1, None)) + arm_off
+    theta += rng.normal(0, 0.35 + 0.02 * r_arr, n)
+    r_sc = np.abs(r_arr + rng.normal(0, 0.25, n))
+    bulge_frac = np.exp(-r_arr / 1.5)
     iso = rng.uniform(0, 2 * np.pi, n)
     theta = np.where(rng.uniform(0, 1, n) < bulge_frac, iso, theta)
-    return r_sc * np.cos(theta), r_sc * np.sin(theta), rng.normal(0, 0.08 + 0.01 * r, n)
+    return r_sc * np.cos(theta), r_sc * np.sin(theta), rng.normal(0, 0.08 + 0.01 * r_arr, n)
 
 
 from .moons import estimate_moon_summary
@@ -150,19 +156,50 @@ def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
     metallicity_grid = np.array(result.get('metallicity_tracked', result['metallicity']))
     birth_metallicity = metallicity_grid[ir_arr, it_arr]
     current_time = float(t_grid[-1])
+    star_ages = np.maximum(current_time - births, 0.0)
+    birth_radius_kpc = np.asarray(r_grid[ir_arr], dtype=float)
+    migration_state = sample_stellar_migration_state(
+        birth_radius_kpc,
+        star_ages,
+        rng,
+        r_min_kpc=float(r_grid[0]),
+        r_max_kpc=float(r_grid[-1]),
+        drift_coeff_kpc=float(solver_params.get('stellar_migration_drift_coeff_kpc', 0.18)),
+        max_shift_kpc=float(solver_params.get('stellar_migration_max_shift_kpc', 0.85)),
+        sigma_floor_kpc=float(solver_params.get('stellar_migration_sigma_floor_kpc', 0.04)),
+        sigma_sqrt_age_kpc=float(solver_params.get('stellar_migration_sigma_sqrt_age_kpc', 0.08)),
+        resonance_strength=float(solver_params.get('stellar_migration_resonance_strength', 1.0)),
+        sigma_r_floor_km_s=float(solver_params.get('stellar_sigma_r_floor_km_s', 8.0)),
+        sigma_r_sqrt_age_km_s=float(solver_params.get('stellar_sigma_r_sqrt_age_km_s', 9.0)),
+        sigma_z_floor_km_s=float(solver_params.get('stellar_sigma_z_floor_km_s', 5.0)),
+        sigma_z_sqrt_age_km_s=float(solver_params.get('stellar_sigma_z_sqrt_age_km_s', 4.0)),
+        v_circ_max_km_s=float(solver_params.get('stellar_vcirc_max_km_s', 232.0)),
+        v_circ_turnover_kpc=float(solver_params.get('stellar_vcirc_turnover_kpc', 1.5)),
+        eccentricity_max=float(solver_params.get('stellar_eccentricity_max', 0.35)),
+    )
+    current_radius_kpc = migration_state['current_radius_kpc']
+    radial_mean_shift_kpc = migration_state['radial_migration_mean_shift_kpc']
+    radial_sigma_kpc = migration_state['radial_migration_sigma_kpc']
+    guiding_radius_kpc = migration_state['guiding_radius_kpc']
+    current_r_zone = np.clip(
+        np.rint((current_radius_kpc - float(r_grid[0])) / max(dr, 1e-8)).astype(int),
+        0,
+        nr - 1,
+    )
+    guiding_r_zone = np.clip(
+        np.rint((guiding_radius_kpc - float(r_grid[0])) / max(dr, 1e-8)).astype(int),
+        0,
+        nr - 1,
+    )
 
     masses = _sample_imf(rng, n_stars)
     popiii_mask = (births <= max(dt[0], 0.02)) | (birth_metallicity < 1e-4)
     if np.any(popiii_mask):
         masses[popiii_mask] = _sample_popiii_imf(rng, int(np.sum(popiii_mask)))
 
-    xs, ys, zs = np.empty(n_stars), np.empty(n_stars), np.empty(n_stars)
-    for ir in range(nr):
-        mask = ir_arr == ir
-        if mask.sum() == 0:
-            continue
-        px, py, pz = _spiral_pos(r_grid[ir], rng, mask.sum())
-        xs[mask], ys[mask], zs[mask] = px, py, pz
+    xs, ys, zs = _spiral_pos(birth_radius_kpc, rng, n_stars)
+    current_xs, current_ys, _ = _spiral_pos(current_radius_kpc, rng, n_stars)
+    current_zs = migration_state['current_z_kpc']
 
     ms_life = np.asarray(_stellar_lifetime_model(masses, np.clip(birth_metallicity, 1e-6, 0.06)), dtype=float)
     deaths = np.full_like(births, 99999.0)
@@ -178,7 +215,7 @@ def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
     for idx, mass in enumerate(masses):
         ir, it = ir_arr[idx], it_arr[idx]
         metallicity_z = float(birth_metallicity[idx])
-        star_age = max(current_time - births[idx], 0.0)
+        star_age = float(star_ages[idx])
         evo = stellar_evolution(mass, star_age, metallicity_z=metallicity_z, model=stellar_model)
         sp, _, _ = _spectral(mass)
         types.append(sp)
@@ -273,6 +310,26 @@ def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
             'birth': births.tolist(),
             'death': deaths.tolist(),
             'birth_z': birth_metallicity.tolist(),
+            'birth_radius_kpc': birth_radius_kpc.tolist(),
+            'birth_guiding_radius_kpc': migration_state['birth_guiding_radius_kpc'].tolist(),
+            'guiding_radius_kpc': guiding_radius_kpc.tolist(),
+            'guiding_radius_delta_kpc': migration_state['guiding_radius_delta_kpc'].tolist(),
+            'current_radius_kpc': current_radius_kpc.tolist(),
+            'radial_migration_delta_kpc': migration_state['radial_migration_delta_kpc'].tolist(),
+            'radial_churning_delta_kpc': migration_state['radial_churning_delta_kpc'].tolist(),
+            'radial_blurring_delta_kpc': migration_state['radial_blurring_delta_kpc'].tolist(),
+            'radial_migration_mean_shift_kpc': radial_mean_shift_kpc.tolist(),
+            'radial_migration_sigma_kpc': radial_sigma_kpc.tolist(),
+            'orbital_eccentricity': migration_state['orbital_eccentricity'].tolist(),
+            'sigma_R_km_s': migration_state['sigma_R_km_s'].tolist(),
+            'sigma_phi_km_s': migration_state['sigma_phi_km_s'].tolist(),
+            'sigma_z_km_s': migration_state['sigma_z_km_s'].tolist(),
+            'circular_velocity_km_s': migration_state['circular_velocity_km_s'].tolist(),
+            'angular_momentum_kpc_km_s': migration_state['angular_momentum_kpc_km_s'].tolist(),
+            'v_R_km_s': migration_state['v_R_km_s'].tolist(),
+            'v_phi_km_s': migration_state['v_phi_km_s'].tolist(),
+            'v_z_km_s': migration_state['v_z_km_s'].tolist(),
+            'vertical_scale_height_kpc': migration_state['vertical_scale_height_kpc'].tolist(),
             'ms_lifetime': ms_life.tolist(),
             'phase_current': phase_current,
             'phase_bucket': phase_bucket,
@@ -280,6 +337,11 @@ def generate_galaxy(n_stars=25000, params=None, seed=42, stellar_model=None):
             'current_mass': current_mass_arr,
             'spectral_current': spectral_current,
             'r_zone': ir_arr.tolist(),
+            'guiding_r_zone': guiding_r_zone.tolist(),
+            'current_r_zone': current_r_zone.tolist(),
+            'current_x': current_xs.tolist(),
+            'current_y': current_ys.tolist(),
+            'current_z': current_zs.tolist(),
             't_zone': it_arr.tolist(),
             'met': met_arr,
             'has_planets': has_p,

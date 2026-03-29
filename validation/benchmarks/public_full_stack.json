@@ -14,15 +14,108 @@
         "r_max": 15.5,
         "dr": 1.0,
         "yield_r_multiplier": 1.1,
-        "outflow_eta": 1.1
+        "outflow_eta": 1.06
       },
       "solar_radius_kpc": 8.0,
       "slope_window_kpc": [
         4.0,
         12.0
       ],
+      "open_cluster_migration": {
+        "enabled": true,
+        "mean_birth_offset_kpc": 0.75,
+        "sigma_kpc": 0.25
+      },
+      "stellar_kinematics_validation": {
+        "sample_size": 12000,
+        "seed": 123,
+        "solar_annulus_kpc": [
+          6.0,
+          10.0
+        ],
+        "analysis_radius_kpc": [
+          4.0,
+          12.0
+        ],
+        "age_bins_gyr": [
+          [
+            0.0,
+            2.0
+          ],
+          [
+            2.0,
+            5.0
+          ],
+          [
+            5.0,
+            8.0
+          ],
+          [
+            8.0,
+            12.0
+          ]
+        ],
+        "sigma_r_reference_km_s": [
+          [
+            10.0,
+            25.0
+          ],
+          [
+            18.0,
+            35.0
+          ],
+          [
+            24.0,
+            46.0
+          ],
+          [
+            30.0,
+            60.0
+          ]
+        ],
+        "sigma_z_reference_km_s": [
+          [
+            5.0,
+            14.0
+          ],
+          [
+            8.0,
+            20.0
+          ],
+          [
+            12.0,
+            28.0
+          ],
+          [
+            16.0,
+            36.0
+          ]
+        ],
+        "eccentricity_reference": [
+          [
+            0.02,
+            0.10
+          ],
+          [
+            0.03,
+            0.14
+          ],
+          [
+            0.05,
+            0.18
+          ],
+          [
+            0.06,
+            0.24
+          ]
+        ],
+        "young_age_max_gyr": 2.0,
+        "old_age_min_gyr": 8.0
+      },
       "notes": [
-        "The solver operates on 1 kpc annuli, so the nearest annulus to 8 kpc is used for the solar neighborhood comparison."
+        "The solver operates on 1 kpc annuli, so the nearest annulus to 8 kpc is used for the solar neighborhood comparison.",
+        "Open-cluster validation applies a lightweight migration kernel before sampling present-day cluster radii.",
+        "Chemo-dynamical validation uses broad literature-inspired Milky Way disk envelopes for age-dispersion and age-eccentricity trends."
       ]
     },
     "stellar": {

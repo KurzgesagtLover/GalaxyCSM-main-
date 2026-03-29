@@ -5,6 +5,7 @@ Evolves gas composition in concentric annuli under:
   - CCSNe (instantaneous), Type Ia (DTD), AGB (delayed), NSM (DTD)
   - Double-exponential gas infall (inside-out)
   - Mass-proportional outflow
+  - Weak radial gas mixing between neighboring annuli
 """
 import numpy as np
 from .config import (ELEMENTS, N_ELEMENTS, EL_IDX,
@@ -119,6 +120,39 @@ class GCESolver:
             raw /= norm
         return raw * self.dt[None, :]                   # include dt_j
 
+    def _apply_radial_mixing(self, m_el, dt):
+        """Diffuse gas-phase element surface densities across neighboring annuli."""
+        d_mix = float(max(self.p.get('radial_mixing_kpc2_gyr', 0.0), 0.0))
+        if d_mix <= 0.0 or self.nr < 2:
+            return m_el
+
+        dr = max(float(self.p['dr']), 1e-8)
+        coeff = min(d_mix * dt / (dr * dr), 0.45)  # explicit diffusion stability
+        if coeff <= 0.0:
+            return m_el
+
+        mixed = m_el.copy()
+        if self.nr == 2:
+            delta = coeff * (m_el[:, 1] - m_el[:, 0])
+            mixed[:, 0] = m_el[:, 0] + delta
+            mixed[:, 1] = m_el[:, 1] - delta
+        else:
+            mixed[:, 1:-1] = (
+                m_el[:, 1:-1]
+                + coeff * (m_el[:, :-2] - 2.0 * m_el[:, 1:-1] + m_el[:, 2:])
+            )
+            # Zero-flux boundaries: edge zones only exchange with their one neighbor.
+            mixed[:, 0] = m_el[:, 0] + coeff * (m_el[:, 1] - m_el[:, 0])
+            mixed[:, -1] = m_el[:, -1] + coeff * (m_el[:, -2] - m_el[:, -1])
+
+        mixed = np.clip(mixed, 0.0, None)
+        for ie in range(mixed.shape[0]):
+            total_before = float(np.sum(m_el[ie]))
+            total_after = float(np.sum(mixed[ie]))
+            if total_after > 0.0:
+                mixed[ie] *= total_before / total_after
+        return mixed
+
     # --------------------------------------------------------
     # Solve
     # --------------------------------------------------------
@@ -141,8 +175,111 @@ class GCESolver:
                                   p.get('yield_r_multiplier', 1.0))
         y_nsm = nsm_yields(p['nsm_ejecta'], p.get('yield_r_multiplier', 1.0))
 
-        for ir in range(nr):
-            self._evolve_zone(ir, Mia, Mnsm, y_ia, y_nsm, y_coll)
+        # State arrays evolved simultaneously so radial mixing can couple annuli.
+        mg = np.full(nr, 0.1, dtype=float)
+        ms = np.zeros(nr, dtype=float)
+        X = np.repeat(BBN_ABUNDANCE[:, None], nr, axis=1)
+        sfr_hist = np.zeros((nr, nt))
+        Z_hist = np.zeros((nr, nt))
+
+        N_AGB_BINS = 25
+        m_agb_edges = np.linspace(1.0, 8.0, N_AGB_BINS + 1)
+        m_agb_centers = 0.5 * (m_agb_edges[:-1] + m_agb_edges[1:])
+        dm_agb = np.diff(m_agb_edges)
+        m_imf, phi_n = self._m_imf, self._phi_imf
+
+        for it in range(nt):
+            t = self.t[it]
+            dt = self.dt[it]
+
+            m_el_next = np.zeros((nel, nr), dtype=float)
+            ms_next = np.zeros(nr, dtype=float)
+            sfr_current = np.zeros(nr, dtype=float)
+
+            for ir in range(nr):
+                r = self.r[ir]
+                mg_i = float(mg[ir])
+                ms_i = float(ms[ir])
+                X_i = X[:, ir].copy()
+
+                dm_in = self._infall(r, t) * dt
+                X_in = BBN_ABUNDANCE
+
+                sfr = self._sfr(mg_i)
+                dm_sf = min(sfr * dt, 0.9 * mg_i)
+                sfr_hist[ir, it] = sfr
+                sfr_current[ir] = sfr
+
+                Z_cur = max(1.0 - X_i[EL_IDX['H']] - X_i[EL_IDX['He']], 0.0)
+                Z_hist[ir, it] = Z_cur
+
+                ycc = ccsne_yields(Z_cur)
+                R_cc = self.imf_stats['ccsn_return_fraction']
+                enrich_cc = dm_sf * ycc
+                ret_cc = dm_sf * R_cc
+
+                rate_ia = p['ia_N_per_Msun'] * Mia[it, :it+1] @ sfr_hist[ir, :it+1]
+                enrich_ia = rate_ia * y_ia * dt
+                ret_ia = rate_ia * 1.4 * dt
+
+                enrich_agb = np.zeros(nel)
+                ret_agb = 0.0
+                for ib in range(N_AGB_BINS):
+                    m_agb = m_agb_centers[ib]
+                    source = self._agb_source_state(m_agb, t, it, sfr_hist[ir], Z_hist[ir])
+                    if source is not None:
+                        phi_at_m = np.interp(m_agb, m_imf, phi_n)
+                        weight = phi_at_m * dm_agb[ib]
+                        n_agb = source['sfr_form'] * dt * weight * p.get('agb_frequency_multiplier', 1.0)
+                        y_a = agb_yields(m_agb, source['Z_form'], p.get('yield_s_multiplier', 1.0))
+                        m_rem_a = remnant_mass(np.array([m_agb]))[0]
+                        enrich_agb += n_agb * y_a
+                        ret_agb += n_agb * (m_agb - m_rem_a)
+
+                rate_nsm = p['nsm_N_per_Msun'] * Mnsm[it, :it+1] @ sfr_hist[ir, :it+1]
+                enrich_nsm = rate_nsm * y_nsm * dt
+
+                collapsar_frac = p.get('collapsar_frac', 0.001)
+                n_collapsar = dm_sf * self.imf_stats['ccsn_number_per_msun'] * collapsar_frac
+                enrich_coll = n_collapsar * y_coll
+
+                dm_out = p['outflow_eta'] * dm_sf
+                total_enrich = enrich_cc + enrich_ia + enrich_agb + enrich_nsm + enrich_coll
+                dm_gas = -dm_sf + ret_cc + ret_ia + ret_agb + dm_in - dm_out
+                mg_new = max(mg_i + dm_gas, 1e-4)
+
+                m_el = mg_i * X_i
+                m_el -= dm_sf * X_i
+                m_el += ret_cc * X_i
+                m_el += ret_agb * X_i
+                m_el[EL_IDX['He']] += dm_sf * CCSNE_HE_YIELD
+                m_el += total_enrich
+                m_el += dm_in * X_in
+                m_el -= dm_out * X_i
+                m_el = np.clip(m_el, 0.0, None)
+
+                total_m_el = float(np.sum(m_el))
+                if total_m_el > 0.0:
+                    m_el *= mg_new / total_m_el
+                else:
+                    m_el = mg_new * BBN_ABUNDANCE.copy()
+
+                m_el_next[:, ir] = m_el
+                ms_next[ir] = ms_i + dm_sf - ret_cc - ret_ia - ret_agb
+
+            m_el_next = self._apply_radial_mixing(m_el_next, dt)
+            mg = np.clip(np.sum(m_el_next, axis=0), 1e-4, None)
+            X = np.divide(m_el_next, mg[None, :], out=np.zeros_like(m_el_next), where=mg[None, :] > 0)
+            total_X = np.sum(X, axis=0, keepdims=True)
+            X = np.divide(X, np.where(total_X > 0, total_X, 1.0))
+            Z_new = np.clip(1.0 - X[EL_IDX['H']] - X[EL_IDX['He']], 0.0, None)
+            ms = ms_next
+
+            self.X[:, :, it] = X
+            self.Mgas[:, it] = mg
+            self.Mstar[:, it] = ms
+            self.SFR[:, it] = sfr_current
+            self.Z_[:, it] = Z_new
 
         return self._results()
 

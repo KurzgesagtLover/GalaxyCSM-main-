@@ -81,11 +81,62 @@ def test_galaxy_overview_uses_current_phase_metadata():
     stars = data['stars']
     for key in (
         'phase_current', 'phase_bucket', 'phase_kr_current', 'current_mass', 'spectral_current',
+        'birth_radius_kpc', 'birth_guiding_radius_kpc', 'guiding_radius_kpc', 'guiding_radius_delta_kpc',
+        'current_radius_kpc', 'radial_migration_delta_kpc', 'radial_churning_delta_kpc',
+        'radial_blurring_delta_kpc',
+        'radial_migration_mean_shift_kpc', 'radial_migration_sigma_kpc',
+        'orbital_eccentricity', 'sigma_R_km_s', 'sigma_phi_km_s', 'sigma_z_km_s',
+        'circular_velocity_km_s', 'angular_momentum_kpc_km_s',
+        'v_R_km_s', 'v_phi_km_s', 'v_z_km_s', 'vertical_scale_height_kpc',
+        'guiding_r_zone', 'current_r_zone', 'current_x', 'current_y', 'current_z',
         'has_moon_system', 'has_regular_moons', 'has_irregular_moons',
         'has_large_moon', 'has_resonant_moon_chain', 'moon_count_estimate',
     ):
         assert key in stars
         assert len(stars[key]) == 8
+
+    for birth_r, guiding_r, current_r in zip(
+        stars['birth_radius_kpc'],
+        stars['guiding_radius_kpc'],
+        stars['current_radius_kpc'],
+    ):
+        assert 0.5 <= birth_r <= 20.0
+        assert 0.5 <= guiding_r <= 20.0
+        assert 0.5 <= current_r <= 20.0
+
+    for birth_rg, guiding_r, delta_rg in zip(
+        stars['birth_guiding_radius_kpc'],
+        stars['guiding_radius_kpc'],
+        stars['guiding_radius_delta_kpc'],
+    ):
+        assert abs((guiding_r - birth_rg) - delta_rg) < 1e-6
+
+    for guiding_r, current_r, delta_blur in zip(
+        stars['guiding_radius_kpc'],
+        stars['current_radius_kpc'],
+        stars['radial_blurring_delta_kpc'],
+    ):
+        assert abs((current_r - guiding_r) - delta_blur) < 1e-6
+
+    for birth_r, current_r, delta_total in zip(
+        stars['birth_radius_kpc'],
+        stars['current_radius_kpc'],
+        stars['radial_migration_delta_kpc'],
+    ):
+        assert abs((current_r - birth_r) - delta_total) < 1e-6
+
+    for ecc in stars['orbital_eccentricity']:
+        assert 0.0 <= ecc <= 0.35
+
+    for rg, vc, lz, rc, vphi in zip(
+        stars['guiding_radius_kpc'],
+        stars['circular_velocity_km_s'],
+        stars['angular_momentum_kpc_km_s'],
+        stars['current_radius_kpc'],
+        stars['v_phi_km_s'],
+    ):
+        assert abs(lz - rg * vc) < 1e-6
+        assert abs(vphi - lz / max(rc, 1e-8)) < 1e-6
 
     print('galaxy overview current-state metadata: OK')
     print(f"  phases={set(stars['phase_bucket'])}")

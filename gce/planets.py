@@ -573,9 +573,9 @@ def compute_atmosphere(bulk_comp, mass_earth, ptype, T_eq, g_surface,
     # References: Marty (2012), Halliday (2013)
     f_age = min(1.0, (age_gyr / 4.5) ** 0.5) * mass_earth ** 0.15
     OUTGAS_EFF = {
-        'N': 0.24 * f_age,   # Earth-like secondary atmospheres need slightly
-                             # stronger long-term N2 degassing than the
-                             # previous conservative baseline.
+        'N': 0.23 * f_age,   # Slightly lower long-term N2 degassing keeps the
+                             # modern-Earth anchor near 0.78 atm N2 without
+                             # materially changing abiogenic atmospheres.
         'C': 0.05 * f_age,   # BSE C ~120 ppm; most C stays as carbonate in crust
                               # Earth total surface C ~ 0.01 wt% BSE (Dasgupta+2013)
         'H': 0.25 * f_age,   # BSE H ~100 ppm, need ~1.4e21 H₂O (ocean+atm)

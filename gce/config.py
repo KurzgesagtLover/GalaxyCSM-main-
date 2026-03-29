@@ -86,6 +86,20 @@ DEFAULT_PARAMS = {
     't_max': DEFAULT_GCE_T_MAX,      # Gyr
     # Spatial
     'r_min': 0.5, 'r_max': 20.0, 'dr': 1.0,   # kpc
+    'radial_mixing_kpc2_gyr': 0.0,            # optional annulus-to-annulus gas mixing
+    # Stellar radial migration / kinematics
+    'stellar_migration_drift_coeff_kpc': 0.18,
+    'stellar_migration_max_shift_kpc': 0.85,
+    'stellar_migration_sigma_floor_kpc': 0.04,
+    'stellar_migration_sigma_sqrt_age_kpc': 0.08,
+    'stellar_migration_resonance_strength': 1.0,
+    'stellar_sigma_r_floor_km_s': 8.0,
+    'stellar_sigma_r_sqrt_age_km_s': 9.0,
+    'stellar_sigma_z_floor_km_s': 5.0,
+    'stellar_sigma_z_sqrt_age_km_s': 4.0,
+    'stellar_vcirc_max_km_s': 232.0,
+    'stellar_vcirc_turnover_kpc': 1.5,
+    'stellar_eccentricity_max': 0.35,
     # Star formation (Kennicutt-Schmidt)
     'sfr_efficiency': 0.08,
     'sfr_exponent': 1.4,
@@ -96,7 +110,7 @@ DEFAULT_PARAMS = {
     'infall_sigma_thin0': 320.0,
     'infall_rd': 2.0,                # disk scale length kpc
     # Outflow
-    'outflow_eta': 1.1,              # mass-loading factor
+    'outflow_eta': 1.06,             # mass-loading factor
     # r-process calibration
     'yield_r_multiplier': 1.1,       # keeps solar-zone [Eu/Fe] near the solar anchor
     'yield_s_multiplier': 1.0,
@@ -134,15 +148,38 @@ def coerce_solver_params(params=None):
     r_min = float(p['r_min'])
     r_max = float(p['r_max'])
     dr = float(p['dr'])
+    radial_mixing = float(p.get('radial_mixing_kpc2_gyr', 0.0))
     if dr <= 0:
         raise ValueError("dr must be positive")
     if r_max <= r_min:
         raise ValueError("r_max must be greater than r_min")
+    if radial_mixing < 0:
+        raise ValueError("radial_mixing_kpc2_gyr must be non-negative")
+
+    non_negative_keys = (
+        'stellar_migration_drift_coeff_kpc',
+        'stellar_migration_max_shift_kpc',
+        'stellar_migration_sigma_floor_kpc',
+        'stellar_migration_sigma_sqrt_age_kpc',
+        'stellar_migration_resonance_strength',
+        'stellar_sigma_r_floor_km_s',
+        'stellar_sigma_r_sqrt_age_km_s',
+        'stellar_sigma_z_floor_km_s',
+        'stellar_sigma_z_sqrt_age_km_s',
+        'stellar_vcirc_max_km_s',
+        'stellar_vcirc_turnover_kpc',
+        'stellar_eccentricity_max',
+    )
+    for key in non_negative_keys:
+        p[key] = float(p.get(key, DEFAULT_PARAMS[key]))
+        if p[key] < 0:
+            raise ValueError(f"{key} must be non-negative")
 
     p['t_max'] = t_max
     p['r_min'] = r_min
     p['r_max'] = r_max
     p['dr'] = dr
+    p['radial_mixing_kpc2_gyr'] = radial_mixing
     return p
 
 

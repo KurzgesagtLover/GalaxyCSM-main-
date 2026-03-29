@@ -356,7 +356,7 @@ const GEN_PARAMS = [
     { id: 'infall_rd', label: 'Disk scale length (kpc)', type: 'float', min: 1, max: 10, step: 0.5, default: 2.0 },
 
     { section: '유출 (Outflow)' },
-    { id: 'outflow_eta', label: 'Mass-loading factor η', type: 'float', min: 0, max: 5, step: 0.1, default: 1.1 },
+    { id: 'outflow_eta', label: 'Mass-loading factor η', type: 'float', min: 0, max: 5, step: 0.1, default: 1.06 },
 
     { section: '원소 수율 배율' },
     { id: 'yield_r_multiplier', label: 'r-process (NSM) 수율', type: 'float', min: 0.1, max: 10, step: 0.1, default: 1.1, unit: '×' },
@@ -556,6 +556,7 @@ function togglePlay() {
 }
 
 let origColor, origSize;
+let birthPos, currentPos;
 
 /* ---- Heatmap Field Overlay ---- */
 let heatmapMesh = null, _hmCanvas = null, _hmCtx = null, _hmTexture = null;
@@ -685,12 +686,23 @@ function buildStarField() {
     const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
     const sz = new Float32Array(n), bth = new Float32Array(n), dth = new Float32Array(n);
 
-    // Store original sizes and colors for filtering and map mode restoring
     origColor = new Float32Array(n * 3);
     origSize = new Float32Array(n);
+    birthPos = new Float32Array(n * 3);
+    currentPos = new Float32Array(n * 3);
+
+    const hasMigration = Array.isArray(s.current_x) && s.current_x.length === n;
 
     for (let i = 0; i < n; i++) {
-        pos[i * 3] = s.x[i]; pos[i * 3 + 1] = s.z[i]; pos[i * 3 + 2] = s.y[i];
+        birthPos[i * 3] = s.x[i]; birthPos[i * 3 + 1] = s.z[i]; birthPos[i * 3 + 2] = s.y[i];
+        if (hasMigration) {
+            currentPos[i * 3] = s.current_x[i]; currentPos[i * 3 + 1] = s.current_z[i]; currentPos[i * 3 + 2] = s.current_y[i];
+        } else {
+            currentPos[i * 3] = birthPos[i * 3]; currentPos[i * 3 + 1] = birthPos[i * 3 + 1]; currentPos[i * 3 + 2] = birthPos[i * 3 + 2];
+        }
+
+        pos[i * 3] = currentPos[i * 3]; pos[i * 3 + 1] = currentPos[i * 3 + 1]; pos[i * 3 + 2] = currentPos[i * 3 + 2];
+
         const hx = s.color[i];
         const r = parseInt(hx.slice(1, 3), 16) / 255;
         const g_col = parseInt(hx.slice(3, 5), 16) / 255;
@@ -719,22 +731,51 @@ function buildStarField() {
     scene.add(starPoints);
 
     _buildHeatmapDisk();
-    updateColorsAndFilters(); // initial state
+    updateColorsAndFilters();
+}
+
+/* ---- Position blending (birth → current via age fraction) ---- */
+function _updateStarPositions() {
+    if (!starPoints || !galaxyData || !birthPos || !currentPos) return;
+    const s = galaxyData.stars;
+    const n = s.x.length;
+    const posAttr = starPoints.geometry.attributes.position;
+    const presentTime = galaxyData?.t_max ?? currentTime;
+    for (let i = 0; i < n; i++) {
+        const age = currentTime - s.birth[i];
+        if (age <= 0) {
+            posAttr.array[i * 3] = birthPos[i * 3];
+            posAttr.array[i * 3 + 1] = birthPos[i * 3 + 1];
+            posAttr.array[i * 3 + 2] = birthPos[i * 3 + 2];
+        } else {
+            const presentAge = Math.max(presentTime - s.birth[i], 0.0);
+            const f = presentAge > 0 ? Math.min(age / presentAge, 1.0) : 1.0;
+            posAttr.array[i * 3] = birthPos[i * 3] + (currentPos[i * 3] - birthPos[i * 3]) * f;
+            posAttr.array[i * 3 + 1] = birthPos[i * 3 + 1] + (currentPos[i * 3 + 1] - birthPos[i * 3 + 1]) * f;
+            posAttr.array[i * 3 + 2] = birthPos[i * 3 + 2] + (currentPos[i * 3 + 2] - birthPos[i * 3 + 2]) * f;
+        }
+    }
+    posAttr.needsUpdate = true;
 }
 
 /* ---- Map Modes & Filtering ---- */
 function updateColorsAndFilters() {
     if (!starPoints || !galaxyData) return;
 
+    _updateStarPositions();
+
     const mode = document.getElementById('mapModeSelect').value;
     const s = galaxyData.stars;
     const gce = galaxyData.gce;
     const n = s.x.length;
+    const hasMigration = Array.isArray(s.current_r_zone);
+    const rMinGrid = Array.isArray(gce.radius) && gce.radius.length ? gce.radius[0] : 0.0;
+    const drGrid = Array.isArray(gce.radius) && gce.radius.length > 1 ? (gce.radius[1] - gce.radius[0]) : 1.0;
+    const presentTime = galaxyData?.t_max ?? currentTime;
 
     const colAttr = starPoints.geometry.attributes.aColor;
     const szAttr = starPoints.geometry.attributes.aSize;
 
-    // Get filter states
     const selSp = Array.from(document.querySelectorAll('.flt-sp:checked')).map(el => el.value);
     const selPh = Array.from(document.querySelectorAll('.flt-ph:checked')).map(el => el.value);
     const fp = document.getElementById('flt_has_p').checked;
@@ -742,7 +783,6 @@ function updateColorsAndFilters() {
     const fg = document.getElementById('flt_has_gas').checked;
     const fhz = document.getElementById('flt_has_hz').checked;
 
-    // For radiation mode, get time index
     let it = 0;
     if (mode === 'radiation' || mode === 'ghz') {
         const tGrid = gce.time;
@@ -753,60 +793,75 @@ function updateColorsAndFilters() {
 
     let aliveCount = 0;
     for (let i = 0; i < n; i++) {
-        // --- 1. Map Mode Coloring ---
         let r = origColor[i * 3], g_col = origColor[i * 3 + 1], b = origColor[i * 3 + 2];
         const met = s.met[i];
-        const rad = (mode === 'radiation' || mode === 'ghz') ? gce.sn2_rate[s.r_zone[i]][it] : 0;
+        const starAgeNow = Math.max(currentTime - s.birth[i], 0.0);
+        const presentAge = Math.max(presentTime - s.birth[i], 0.0);
+        const migrationFrac = presentAge > 0 ? Math.min(starAgeNow / presentAge, 1.0) : 1.0;
+        const birthRadius = Array.isArray(s.birth_radius_kpc) ? s.birth_radius_kpc[i] : null;
+        const currentRadius = Array.isArray(s.current_radius_kpc) ? s.current_radius_kpc[i] : birthRadius;
+        const displayRadius = (birthRadius != null && currentRadius != null)
+            ? birthRadius + (currentRadius - birthRadius) * migrationFrac
+            : null;
+
+        const rZone = (displayRadius != null && mode !== 'migration')
+            ? Math.max(0, Math.min(gce.radius.length - 1, Math.round((displayRadius - rMinGrid) / Math.max(drGrid, 1e-8))))
+            : ((hasMigration && mode !== 'migration') ? s.current_r_zone[i] : s.r_zone[i]);
+        const rad = (mode === 'radiation' || mode === 'ghz') ? gce.sn2_rate[rZone][it] : 0;
 
         if (mode === 'radiation') {
-            // High rad -> bright cyan/white, Low rad -> dark purple
-            const intensity = Math.pow(Math.min(rad, 1.0), 0.6); // gamma correction for visual glow
+            const intensity = Math.pow(Math.min(rad, 1.0), 0.6);
             r = 0.2 + intensity * 0.8;
             g_col = 0.0 + intensity * 1.0;
             b = 0.5 + intensity * 0.5;
         } else if (mode === 'metallicity') {
-            // [Fe/H]: -1.0 (blue) to +0.5 (red)
             const f = Math.max(0, Math.min(1, (met + 1.0) / 1.5));
             r = f;
             g_col = 0.2;
             b = 1.0 - f;
         } else if (mode === 'ghz') {
-            // GHZ: sufficient metallicity (met > -0.5) and low radiation
             const inGHZ = (met > -0.5) && (rad < 0.15);
-            if (inGHZ) { r = 0; g_col = 1; b = 0; } // Green
-            else { r = 0.3; g_col = 0.3; b = 0.3; } // Gray
+            if (inGHZ) { r = 0; g_col = 1; b = 0; }
+            else { r = 0.3; g_col = 0.3; b = 0.3; }
+        } else if (mode === 'migration') {
+            const delta = hasMigration && Array.isArray(s.radial_migration_delta_kpc)
+                ? s.radial_migration_delta_kpc[i] : 0;
+            const absDelta = Math.abs(delta);
+            const frac = Math.min(absDelta / 3.0, 1.0);
+            if (delta > 0) {
+                r = 1.0; g_col = 0.4 * (1 - frac); b = 0.2 * (1 - frac);
+            } else if (delta < 0) {
+                r = 0.2 * (1 - frac); g_col = 0.4 * (1 - frac); b = 1.0;
+            } else {
+                r = 0.5; g_col = 0.5; b = 0.5;
+            }
         }
 
         colAttr.array[i * 3] = r; colAttr.array[i * 3 + 1] = g_col; colAttr.array[i * 3 + 2] = b;
 
-        // --- 2. Filtering ---
         let visible = true;
 
         const age = Math.max(currentTime - s.birth[i], 0);
         const t_ms = s.ms_lifetime[i];
         const usingCurrentPhase = Array.isArray(s.phase_bucket) && Math.abs(currentTime - (galaxyData?.t_max ?? currentTime)) < 0.05;
         let phase = 'dead';
-        if (currentTime < s.birth[i]) phase = 'unborn';  // not yet born → invisible
+        if (currentTime < s.birth[i]) phase = 'unborn';
         else if (usingCurrentPhase) phase = s.phase_bucket[i] || 'dead';
         else if (age < t_ms * 0.05) phase = 'pre-MS';
         else if (age < t_ms) phase = 'MS';
         else if (age < t_ms * 1.25) phase = 'giant';
 
-        // Apply remnant visual overrides if mode is spectrum and the star is dead
         if (phase === 'dead' && mode === 'spectrum') {
             const m = s.mass[i];
             if (m < 8) {
-                // White Dwarf (blue-white, fading to dark grey if Black Dwarf)
-                if (age > t_ms * 1.25 + 10.0) { // Approx 10 Gyr cooling = Black Dwarf
+                if (age > t_ms * 1.25 + 10.0) {
                     r = 0.1; g_col = 0.1; b = 0.1;
                 } else {
                     r = 0.8; g_col = 0.9; b = 1.0;
                 }
             } else if (m < 25) {
-                // Neutron Star (faint blue)
                 r = 0.5; g_col = 0.8; b = 1.0;
             } else {
-                // Black Hole (black/invisible)
                 r = 0.0; g_col = 0.0; b = 0.0;
             }
         }
@@ -814,11 +869,8 @@ function updateColorsAndFilters() {
         colAttr.array[i * 3] = r; colAttr.array[i * 3 + 1] = g_col; colAttr.array[i * 3 + 2] = b;
 
         if (!selPh.includes(phase)) visible = false;
-
-        // Strict ZAMS Base Spectral Filtering
         if (!selSp.includes(s.type[i])) visible = false;
 
-        // Planet Filters
         if (fp && s.has_planets[i] === 0) visible = false;
         if (fr && s.has_rocky[i] === 0) visible = false;
         if (fg && s.has_gas[i] === 0) visible = false;
@@ -827,15 +879,15 @@ function updateColorsAndFilters() {
         if (visible) {
             if (phase === 'dead') {
                 const m = s.mass[i];
-                if (m < 8) szAttr.array[i] = origSize[i] * 0.3;      // WD smaller
-                else if (m < 25) szAttr.array[i] = origSize[i] * 0.1; // NS much smaller
-                else szAttr.array[i] = 0.0;                           // BH invisible in regular view
+                if (m < 8) szAttr.array[i] = origSize[i] * 0.3;
+                else if (m < 25) szAttr.array[i] = origSize[i] * 0.1;
+                else szAttr.array[i] = 0.0;
             } else {
                 szAttr.array[i] = origSize[i];
             }
             if (currentTime >= s.birth[i] && currentTime <= s.death[i]) aliveCount++;
         } else {
-            szAttr.array[i] = 0; // hide
+            szAttr.array[i] = 0;
         }
     }
 

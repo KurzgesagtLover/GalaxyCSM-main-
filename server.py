@@ -208,6 +208,32 @@ def api_star(star_id):
     result['ms_lifetime'] = round(t_ms, 4)
     result['remaining_ms'] = round(max(t_ms - age, 0), 4)
     result['total_lifetime'] = round(t_ms * 1.3, 4)
+
+    if 'birth_radius_kpc' in s:
+        result['birth_radius_kpc'] = round(float(s['birth_radius_kpc'][star_id]), 4)
+        result['current_radius_kpc'] = round(float(s['current_radius_kpc'][star_id]), 4)
+        result['radial_migration_delta_kpc'] = round(float(s['radial_migration_delta_kpc'][star_id]), 4)
+    if 'guiding_radius_kpc' in s:
+        scalar_fields = (
+            'birth_guiding_radius_kpc',
+            'guiding_radius_kpc',
+            'guiding_radius_delta_kpc',
+            'radial_churning_delta_kpc',
+            'radial_blurring_delta_kpc',
+            'orbital_eccentricity',
+            'sigma_R_km_s',
+            'sigma_phi_km_s',
+            'sigma_z_km_s',
+            'circular_velocity_km_s',
+            'angular_momentum_kpc_km_s',
+            'v_R_km_s',
+            'v_phi_km_s',
+            'v_z_km_s',
+            'vertical_scale_height_kpc',
+        )
+        for key in scalar_fields:
+            result[key] = round(float(s[key][star_id]), 4)
+
     return jsonify(result)
 
 @app.route('/api/evolution/<int:star_id>')
